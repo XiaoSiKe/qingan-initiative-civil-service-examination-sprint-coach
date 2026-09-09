@@ -23,11 +23,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Validate plugin and source registry
-        run: python plugins/qingan-gongkao-coach/scripts/validate.py
+        run: python plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/validate.py
       - name: Validate upstream policy without network
-        run: python plugins/qingan-gongkao-coach/scripts/check_upstreams.py --offline
+        run: python plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/check_upstreams.py --offline
       - name: Run unit tests
-        run: python -m unittest discover -s plugins/qingan-gongkao-coach/tests -v
+        run: python -m unittest discover -s plugins/qingan-initiative-civil-service-examination-sprint-coach/tests -v
 
   package:
     name: Reproducible release bundle
@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Build release bundle
-        run: python plugins/qingan-gongkao-coach/scripts/build_release.py
+        run: python plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/build_release.py
       - name: Inspect bundle
         run: |
           cd dist
@@ -46,7 +46,7 @@ jobs:
           unzip -l "$(awk '{print $2}' SHA256SUMS.txt)"
       - uses: actions/upload-artifact@v7
         with:
-          name: qingan-gongkao-coach
+          name: qingan-initiative-civil-service-examination-sprint-coach
           path: |
             dist/*.zip
             dist/SHA256SUMS.txt

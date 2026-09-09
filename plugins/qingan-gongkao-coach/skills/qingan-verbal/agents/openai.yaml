@@ -1,7 +1,0 @@
-interface:
-  display_name: "青岸·言语理解教练"
-  short_description: "训练主旨、细节、排序、填句和逻辑填空"
-  brand_color: "#2F6F5E"
-  default_prompt: "使用 $qingan-verbal 带我做一道言语题，等我作答后再讲证据链和干扰项。"
-policy:
-  allow_implicit_invocation: true
