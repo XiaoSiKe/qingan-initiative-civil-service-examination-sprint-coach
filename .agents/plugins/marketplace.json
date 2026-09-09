@@ -8,7 +8,7 @@
       "name": "qingan-initiative-civil-service-examination-sprint-coach",
       "source": {
         "source": "local",
-        "path": "./plugins/qingan-initiative-civil-service-examination-sprint-coach"
+        "path": "./plugins/qingan"
       },
       "policy": {
         "installation": "AVAILABLE",

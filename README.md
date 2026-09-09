@@ -209,7 +209,7 @@ codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 可选的本地引擎使用 Python 3.9+，不依赖第三方包。它记录学习事件而不是覆盖历史，并从事件重建日计划、周报和错题回测状态。
 
 ```bash
-cd plugins/qingan-initiative-civil-service-examination-sprint-coach
+cd plugins/qingan
 
 python3 scripts/qingan.py init \
   --exam-type national \
@@ -294,15 +294,15 @@ python3 scripts/qingan.py rate-review --question-id QUESTION_ID --rating good
 ## ✅ 质量与发布
 
 ```bash
-python3 plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/validate.py
-python3 -m unittest discover -s plugins/qingan-initiative-civil-service-examination-sprint-coach/tests -v
-python3 plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/check_upstreams.py --offline
-python3 plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/build_release.py
+python3 plugins/qingan/scripts/validate.py
+python3 -m unittest discover -s plugins/qingan/tests -v
+python3 plugins/qingan/scripts/check_upstreams.py --offline
+python3 plugins/qingan/scripts/build_release.py
 ```
 
 验证覆盖单 Skill 结构、11 条内部路由、48 个正例/冲突/负例场景、大学生与通用生活适配、情绪低谷、学习档案、日周计划、最低可行训练日、错题间隔回测、材料哈希、旧数据兼容、跨平台兼容和可复现发布包。
 
-方法来源、许可证和吸收边界见 [第三方声明](plugins/qingan-initiative-civil-service-examination-sprint-coach/THIRD_PARTY_NOTICES.md)，参与维护见 [贡献指南](plugins/qingan-initiative-civil-service-examination-sprint-coach/CONTRIBUTING.md)。
+方法来源、许可证和吸收边界见 [第三方声明](plugins/qingan/THIRD_PARTY_NOTICES.md)，参与维护见 [贡献指南](plugins/qingan/CONTRIBUTING.md)。
 
 ---
 

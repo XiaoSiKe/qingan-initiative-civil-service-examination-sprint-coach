@@ -67,7 +67,7 @@ def validate():
         require(entries[0].get("name") == manifest.get("name"), "marketplace plugin name mismatch", errors)
         require(
             entries[0].get("source", {}).get("path")
-            == "./plugins/qingan-initiative-civil-service-examination-sprint-coach",
+            == "./plugins/qingan",
             "marketplace path mismatch",
             errors,
         )
@@ -146,6 +146,9 @@ def validate():
     for path in plugin_root.rglob("*"):
         if path.is_file() and path.suffix.lower() in forbidden_suffixes:
             errors.append("binary/course artifact is not allowed: %s" % path.relative_to(plugin_root))
+        if path.is_file():
+            relative_length = len(path.relative_to(repo_root).as_posix())
+            require(relative_length <= 120, "path too long for Windows checkout: %s" % path, errors)
 
     if errors:
         for error in errors:
