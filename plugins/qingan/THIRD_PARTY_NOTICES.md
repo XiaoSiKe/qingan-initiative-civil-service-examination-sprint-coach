@@ -1,6 +1,6 @@
 # Third-party notices
 
-青岸的文字、代码和训练协议为独立实现。以下 MIT 项目的公开设计对本项目有启发；未直接分发其题库、课程资料或大段原文。
+青岸的文字、代码和训练协议为独立实现。以下 MIT / MIT-0 项目的公开设计对本项目有启发；未直接分发其题库、课程资料或大段原文。
 
 - `KaguraNanaga/kaogong-study-tracker` — Copyright (c) 2026 guokao-study-tracker contributors
 - `MUMU0208/redscarf-gongkao-skills` — Copyright (c) 2026 liuyuexi1987
@@ -8,8 +8,9 @@
 - `ZeKaiNie/universal-examprep-skill` — Copyright (c) 2026 ZeKaiNie
 - `zgl610329-wq/learn-anything-fast` — Copyright (c) 2026 zgl&hxr
 - `andesiwangzhiyi-alt/gongkao-shangantong` — Copyright (c) 2026 andesiwangzhiyi-alt
+- `Zhaojixu/shangan-gongkao` — Copyright (c) 2026 zhaojixu（MIT-0；只吸收多时间窗计划和资料角色分类，不分发其材料名录）
 
-上述项目均在调研时声明 MIT License：
+上述项目在调研时声明 MIT 或 MIT-0 License。MIT 项目保留以下许可文本：
 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal

@@ -539,6 +539,110 @@ def weekly_report(root, end_date=None):
     }
 
 
+def metric_delta(current, previous, key):
+    current_value = current.get(key)
+    previous_value = previous.get(key)
+    if current_value is None or previous_value is None:
+        return None
+    return round(float(current_value) - float(previous_value), 4)
+
+
+def efficiency_report(root, end_date=None):
+    """Evaluate the learning process without inventing a composite score."""
+    report = weekly_report(root, end_date=end_date)
+    info = status(root, today=end_date)
+    current = report["current"]
+    previous = report["previous"]
+    attempts = current["attempts"]
+    minutes = current["study_minutes"]
+    completion = current["completion_rate"]
+    accuracy = current["accuracy"]
+    module_count = len(current["by_module"])
+    correct_per_hour = (
+        round(current["correct"] / (minutes / 60.0), 2)
+        if minutes and module_count == 1
+        else None
+    )
+    accuracy_delta = metric_delta(current, previous, "accuracy")
+
+    evidence_checks = {
+        "enough_current_attempts": attempts >= 30,
+        "has_study_time": minutes > 0,
+        "has_task_completion_data": current["planned_tasks"] > 0,
+        "has_previous_baseline": previous["attempts"] >= 20,
+    }
+    evidence_count = sum(1 for value in evidence_checks.values() if value)
+    confidence = "high" if evidence_count == 4 else "medium" if evidence_count >= 2 else "low"
+
+    dimensions = {
+        "execution": {
+            "value": completion,
+            "status": "no-data" if completion is None else "observed",
+        },
+        "accuracy": {
+            "value": accuracy,
+            "status": (
+                "no-data"
+                if accuracy is None
+                else "no-baseline"
+                if accuracy_delta is None
+                else "declined"
+                if accuracy_delta < -0.05
+                else "improved"
+                if accuracy_delta > 0.05
+                else "similar"
+            ),
+        },
+        "time_efficiency": {
+            "correct_per_hour": correct_per_hour,
+            "note": "只在本周只有一个模块时返回；用于同类训练纵向比较，不跨模块排名",
+        },
+        "review_loop": {
+            "reviews_this_week": current["review_count"],
+            "open_reviews": info["open_review_count"],
+            "status": "open-loop" if info["open_review_count"] and not current["review_count"] else "active",
+        },
+        "coverage": {
+            "modules_with_evidence": module_count,
+            "status": "narrow" if module_count < 2 else "visible",
+        },
+    }
+
+    if attempts < 20 or not minutes:
+        bottleneck = "evidence"
+        next_action = "先完成一组带计时、题量和正确数的基线训练，再评价效率"
+    elif completion is not None and completion < 0.6:
+        bottleneck = "execution"
+        next_action = "下周缩小任务量并保留完成判据，先让计划完成率回到可持续区间"
+    elif info["open_review_count"] and not current["review_count"]:
+        bottleneck = "review-loop"
+        next_action = "先清理到期错题并记录回测结果，暂不扩张新题型"
+    elif accuracy_delta is not None and accuracy_delta < -0.05:
+        bottleneck = "method"
+        next_action = "正确率在可比周期中下降；选择错误最多的一个题型，回到识别信号和固定步骤后做近变式"
+    elif module_count < 2:
+        bottleneck = "coverage"
+        next_action = "补一个非主攻模块的小样本，避免用单一模块代表整体状态"
+    else:
+        bottleneck = "time-strategy"
+        next_action = "保持当前方法，用同类训练比较单位时间正确数和止损执行"
+
+    return {
+        "period": report["period"],
+        "confidence": confidence,
+        "evidence_checks": evidence_checks,
+        "dimensions": dimensions,
+        "trend": {
+            "accuracy_delta": accuracy_delta,
+            "completion_rate_delta": metric_delta(current, previous, "completion_rate"),
+            "study_minutes_delta": metric_delta(current, previous, "study_minutes"),
+        },
+        "bottleneck": bottleneck,
+        "next_action": next_action,
+        "warning": "这是一份训练过程诊断，不是能力分数；样本条件变化时不要直接比较。",
+    }
+
+
 def status(root, today=None):
     profile = load_profile(root)
     day = parse_date(today) if today else dt.date.today()

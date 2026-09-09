@@ -8,7 +8,7 @@
       "pinned_sha": "cf9fafd3c607650f48470c0faced14a2d165cf39",
       "license": "MIT",
       "mode": "adapted-concepts",
-      "used_for": ["local-state", "screenshot-input", "study-summary"]
+      "used_for": ["local-state", "screenshot-input", "study-summary", "tone-and-reply-style"]
     },
     {
       "repo": "MUMU0208/redscarf-gongkao-skills",
@@ -16,7 +16,7 @@
       "pinned_sha": "065f5084279a4cd43dc3c7a978e5508fd44158fc",
       "license": "MIT",
       "mode": "adapted-concepts",
-      "used_for": ["skill-routing", "subject-protocols", "error-cards"]
+      "used_for": ["skill-routing", "subject-protocols", "error-cards", "evidence-backed-error-diagnosis"]
     },
     {
       "repo": "KeWang0622/kaogong-skill",
@@ -24,7 +24,7 @@
       "pinned_sha": "c85ca763d02995abb45527a0f7c6a2374d796008",
       "license": "MIT",
       "mode": "adapted-concepts",
-      "used_for": ["official-source-policy", "exam-boundaries"]
+      "used_for": ["official-source-policy", "exam-boundaries", "application-routing", "interview-routing"]
     },
     {
       "repo": "ZeKaiNie/universal-examprep-skill",
@@ -32,7 +32,7 @@
       "pinned_sha": "20ed0633bd4923c516fa482bd0a627c190011381",
       "license": "MIT",
       "mode": "adapted-concepts",
-      "used_for": ["material-grounding", "progress-state", "behavior-evals"]
+      "used_for": ["material-grounding", "progress-state", "behavior-evals", "plain-language-teaching", "one-screen-pacing"]
     },
     {
       "repo": "zgl610329-wq/learn-anything-fast",
@@ -40,7 +40,7 @@
       "pinned_sha": "49a6aef010e56da3b873847f872f490d10a483e5",
       "license": "MIT",
       "mode": "adapted-concepts",
-      "used_for": ["learning-contract", "active-recall", "advancement-gates"]
+      "used_for": ["learning-contract", "active-recall", "advancement-gates", "learner-output", "stop-expansion"]
     },
     {
       "repo": "andesiwangzhiyi-alt/gongkao-shangantong",
@@ -48,7 +48,15 @@
       "pinned_sha": "3e332db2ac811b250921b787d8517fbeaf59832a",
       "license": "MIT",
       "mode": "adapted-concepts",
-      "used_for": ["spaced-review", "local-first-tracking"]
+      "used_for": ["spaced-review", "local-first-tracking", "multi-dimensional-efficiency"]
+    },
+    {
+      "repo": "Zhaojixu/shangan-gongkao",
+      "url": "https://github.com/Zhaojixu/shangan-gongkao",
+      "pinned_sha": "5f2c6f0d6b29a5b86a9e29f9569a2de102779e96",
+      "license": "MIT-0",
+      "mode": "adapted-concepts",
+      "used_for": ["multi-window-planning", "material-role-classification"]
     },
     {
       "repo": "cxs885187-create/--skill",

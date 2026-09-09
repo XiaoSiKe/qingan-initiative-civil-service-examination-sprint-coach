@@ -12,6 +12,7 @@ EXPECTED_SKILLS = {SKILL_NAME}
 EXPECTED_ROUTES = {
     "diagnosis",
     "sprint",
+    "evaluation",
     "materials",
     "mistake",
     "resilience",
@@ -21,6 +22,8 @@ EXPECTED_ROUTES = {
     "data-quant",
     "politics",
     "shenlun",
+    "application",
+    "interview",
 }
 
 
@@ -118,7 +121,7 @@ def validate():
         require(len(focus_source.get("used_for", [])) >= 8, "重点研究源蒸馏范围不完整", errors)
 
     scenarios = json.loads((plugin_root / "evals" / "scenarios.json").read_text(encoding="utf-8"))
-    require(len(scenarios) == 48, "eval suite must contain exactly 48 scenarios", errors)
+    require(len(scenarios) == 60, "eval suite must contain exactly 60 scenarios", errors)
     scenario_ids = {item.get("id") for item in scenarios}
     require(len(scenario_ids) == len(scenarios), "scenario ids must be unique", errors)
     route_counts = {route: 0 for route in EXPECTED_ROUTES}
@@ -139,7 +142,9 @@ def validate():
     root_readme = (repo_root / "README.md").read_text(encoding="utf-8")
     require("一万年太久，只争朝夕！" in root_readme, "README missing requested opening line", errors)
     require("https://github.com/cxs885187-create/--skill" in root_readme, "README missing重点研究源", errors)
-    require("## 🧱 青岸的九个系统" in root_readme, "README missing system map", errors)
+    require("## 🧱 系统全景：三层、十二个系统" in root_readme, "README missing system map", errors)
+    require("## 🗣️ 青岸怎么讲：先说人话，再讲方法" in root_readme, "README missing communication module", errors)
+    require("## 📏 考公效率怎么评估" in root_readme, "README missing efficiency module", errors)
     require("## ❤️ 最难受的时候，青岸先接住你" in root_readme, "README missing resilience system", errors)
 
     forbidden_suffixes = {".pdf", ".docx", ".pptx", ".mp4"}
@@ -154,7 +159,7 @@ def validate():
         for error in errors:
             print("ERROR: " + error, file=sys.stderr)
         return 1
-    print("Validated manifests, 1 unified skill, 11 internal routes, sources, links, and 48 eval scenarios.")
+    print("Validated manifests, 1 unified skill, 14 internal routes, sources, links, and 60 eval scenarios.")
     return 0
 
 

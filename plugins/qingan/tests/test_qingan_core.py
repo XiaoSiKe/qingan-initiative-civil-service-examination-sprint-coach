@@ -190,6 +190,40 @@ class QinganCoreTests(unittest.TestCase):
         self.assertEqual(result["lanes"][1]["module"], "言语理解")
         self.assertEqual(sum(item["minutes"] for item in result["lanes"]), 1500)
 
+    def test_efficiency_report_requires_evidence_before_judgment(self):
+        result = core.efficiency_report(self.root, end_date="2030-09-07")
+        self.assertEqual(result["confidence"], "low")
+        self.assertEqual(result["bottleneck"], "evidence")
+        self.assertIsNone(result["dimensions"]["time_efficiency"]["correct_per_hour"])
+        self.assertIn("不是能力分数", result["warning"])
+
+    def test_efficiency_report_compares_like_periods_and_selects_one_bottleneck(self):
+        core.record_session(self.root, {
+            "timestamp": "2030-08-30T10:00:00+00:00",
+            "module": "资料分析",
+            "duration_minutes": 60,
+            "planned_tasks": 2,
+            "completed_tasks": 2,
+            "attempts": 20,
+            "correct_answers": 15,
+        })
+        core.record_session(self.root, {
+            "timestamp": "2030-09-02T10:00:00+00:00",
+            "module": "资料分析",
+            "duration_minutes": 60,
+            "planned_tasks": 4,
+            "completed_tasks": 2,
+            "attempts": 40,
+            "correct_answers": 20,
+        })
+        result = core.efficiency_report(self.root, end_date="2030-09-07")
+        self.assertEqual(result["confidence"], "high")
+        self.assertEqual(result["bottleneck"], "execution")
+        self.assertEqual(result["trend"]["accuracy_delta"], -0.25)
+        self.assertEqual(result["dimensions"]["accuracy"]["status"], "declined")
+        self.assertEqual(result["dimensions"]["time_efficiency"]["correct_per_hour"], 20.0)
+        self.assertIn("缩小任务量", result["next_action"])
+
     def test_passed_exam_does_not_generate_training_blocks(self):
         result = core.today_plan(self.root, today="2030-12-01")
         self.assertEqual(result["phase"], "exam-passed")
@@ -262,6 +296,22 @@ class QinganCliTests(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(json.loads(minimum.stdout)["minutes"], 15)
+            evaluated = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "qingan.py"),
+                    "--data-dir",
+                    temp,
+                    "evaluate",
+                    "--end-date",
+                    "2030-09-07",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(json.loads(evaluated.stdout)["bottleneck"], "evidence")
 
 
 if __name__ == "__main__":

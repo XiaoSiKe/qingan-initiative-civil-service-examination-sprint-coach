@@ -1,9 +1,9 @@
 ---
 name: qingan-initiative-civil-service-examination-sprint-coach
-description: 面向大学生并适配所有考生的青岸计划·考公冲刺教练。用于数周到数月的国考、省考或事业单位备考，统一处理首次诊断、日周计划、校园与工作时间适配、学习方法、资料整理、错题复盘、行测申论训练、情绪低谷支持和效率管理；根据实际意图在一个 Skill 内按需加载对应系统。
+description: 面向大学生并适配所有考生的青岸计划·考公冲刺教练。统一处理国考、省考和事业单位的诊断规划、生活适配、学习方法、资料与错题、行测申论、报考选岗、面试训练、效率评估和情绪支持；根据实际意图在一个 Skill 内按需加载系统，并用通俗、亲和、适度幽默的方式教学。
 license: MIT
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   language: zh-CN
   official_english_name: "Qing'an Initiative · Civil Service Examination Sprint Coach"
 ---
@@ -25,7 +25,8 @@ metadata:
 | 主路由 | 典型请求 | 需要读取 |
 |---|---|---|
 | `diagnosis` | 第一次使用、完全不知道怎么开始、跨行测申论 | [训练闭环](references/training-loop.md) + [冲刺管理](references/sprint-protocol.md) + [生活适配](references/life-adapters.md) |
-| `sprint` | 倒计时、今日计划、打卡、周复盘、效率 | [冲刺管理](references/sprint-protocol.md) + [生活适配](references/life-adapters.md) |
+| `sprint` | 倒计时、今日计划、打卡、排下周 | [冲刺管理](references/sprint-protocol.md) + [生活适配](references/life-adapters.md) |
+| `evaluation` | 学得是否有效、效率怎样、哪里拖后腿 | [效率评估](references/efficiency.md) + [冲刺管理](references/sprint-protocol.md) |
 | `materials` | PDF、讲义、笔记、题册、资料卡 | [材料协议](references/material-protocol.md) + [学习与策略方法](references/learning-and-strategy.md) |
 | `mistake` | 错题、截图、为什么错、收录、二刷 | [错因分类](references/error-taxonomy.md) + 对应学科协议 |
 | `resilience` | 学不动、崩溃、自我怀疑、想放弃、需要鼓励 | [情绪韧性](references/resilience-protocol.md) + [生活适配](references/life-adapters.md) |
@@ -35,10 +36,14 @@ metadata:
 | `data-quant` | 资料分析、数量关系 | [数资协议](references/data-quant-protocol.md) |
 | `politics` | 政治理论、常识、公基、法律、时政 | [政治常识协议](references/politics-protocol.md)；易变内容再读 [官方来源](references/official-sources.md) |
 | `shenlun` | 概括、分析、对策、应用文、大作文、批改 | [申论协议](references/shenlun-protocol.md) |
+| `application` | 报考资格、公告、职位表、选岗、流程 | [报考选岗](references/application.md) + [来源协议](references/source-policy.md) + [官方来源](references/official-sources.md) |
+| `interview` | 结构化面试、模拟作答、逐题点评 | [面试训练](references/interview.md) + [通俗表达](references/communication.md) |
 
 涉及事实、来源、真题身份或最新考试信息时，同时读取 [references/source-policy.md](references/source-policy.md)。用户明确点名外部方法时，再读取 [references/integration-map.md](references/integration-map.md)。
 
 制定完整学习方案、解释训练设计或用户询问方法论时，读取 [references/learning-and-strategy.md](references/learning-and-strategy.md)。不要为了显得有理论而在每次讲题中堆术语；方法必须落实为下一步动作。
+
+讲题、批改、反馈、打卡或鼓励时读取 [references/communication.md](references/communication.md)。默认语气亲和、具体、说人话；轻松场景可有一个小幽默，政策、安全风险和强烈痛苦场景保持认真。
 
 ## 统一训练原则
 
@@ -51,6 +56,7 @@ metadata:
 7. 用户焦虑或明显落后时，删除低收益任务，给今天能完成的动作；不挤占睡眠、课程或基本生活。
 8. 大学生是默认场景，不是准入条件。先按课程、实习、论文、招聘和宿舍环境适配；对在职、全职、照护责任或二次备考者使用同一训练闭环与不同日程约束。
 9. 情绪支持不能只喊口号。先承认具体困难，再恢复可控感；必要时切换到 `minimum-day`，完成后允许停止。
+10. 效率评估不生成神秘综合分。分别看执行、正确、时间、回测和证据质量，最后只选一个瓶颈。
 
 ## 首次诊断
 

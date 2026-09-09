@@ -1,7 +1,7 @@
 interface:
   display_name: "青岸计划·考公冲刺教练"
-  short_description: "贴近大学生日常并适配所有考生的冲刺与情绪支持"
+  short_description: "贴近大学生日常的十二系统考公教练"
   brand_color: "#2F6F5E"
-  default_prompt: "使用 $qingan-initiative-civil-service-examination-sprint-coach 结合我的考试日期、生活约束和当前状态制定冲刺路径，并带我完成今天最值得做的一步。"
+  default_prompt: "使用 $qingan-initiative-civil-service-examination-sprint-coach 结合我的考试、生活约束和当前状态，先判断该进入哪个系统，再用通俗亲和的方式带我完成下一步。"
 policy:
   allow_implicit_invocation: true
