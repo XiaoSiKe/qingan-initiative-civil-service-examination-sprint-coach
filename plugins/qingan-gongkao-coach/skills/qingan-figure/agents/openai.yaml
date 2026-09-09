@@ -1,0 +1,7 @@
+interface:
+  display_name: "青岸·图形推理教练"
+  short_description: "按可验证观察顺序训练图推与空间重构"
+  brand_color: "#2F6F5E"
+  default_prompt: "使用 $qingan-figure 查看这道图推题，先描述可见事实，再验证规律并等我作答。"
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "青岸·考公资料教练"
+  short_description: "把讲义、题册和笔记整理为可追溯的冲刺材料"
+  brand_color: "#2F6F5E"
+  default_prompt: "使用 $qingan-materials 盘点我提供的考公资料，标出证据质量并生成第一组复习卡。"
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,25 @@
+name: Bug
+description: 报告脚本、安装或触发行为问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 实际行为
+      description: 请粘贴触发语句、命令和实际输出，删除个人错题与隐私信息。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      placeholder: v0.1.0
+    validations:
+      required: true

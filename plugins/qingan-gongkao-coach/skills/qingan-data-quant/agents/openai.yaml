@@ -1,0 +1,7 @@
+interface:
+  display_name: "青岸·资料数量教练"
+  short_description: "训练资料分析速算、数量关系和考场取舍"
+  brand_color: "#2F6F5E"
+  default_prompt: "使用 $qingan-data-quant 带我做一道数资题，先判断题型和最快稳妥解法，再等我计算。"
+policy:
+  allow_implicit_invocation: true

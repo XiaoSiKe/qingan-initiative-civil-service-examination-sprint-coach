@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-09-09",
+  "sources": [
+    {
+      "repo": "KaguraNanaga/kaogong-study-tracker",
+      "url": "https://github.com/KaguraNanaga/kaogong-study-tracker",
+      "pinned_sha": "cf9fafd3c607650f48470c0faced14a2d165cf39",
+      "license": "MIT",
+      "mode": "adapted-concepts",
+      "used_for": ["local-state", "screenshot-input", "study-summary"]
+    },
+    {
+      "repo": "MUMU0208/redscarf-gongkao-skills",
+      "url": "https://github.com/MUMU0208/redscarf-gongkao-skills",
+      "pinned_sha": "065f5084279a4cd43dc3c7a978e5508fd44158fc",
+      "license": "MIT",
+      "mode": "adapted-concepts",
+      "used_for": ["skill-routing", "subject-protocols", "error-cards"]
+    },
+    {
+      "repo": "KeWang0622/kaogong-skill",
+      "url": "https://github.com/KeWang0622/kaogong-skill",
+      "pinned_sha": "c85ca763d02995abb45527a0f7c6a2374d796008",
+      "license": "MIT",
+      "mode": "adapted-concepts",
+      "used_for": ["official-source-policy", "exam-boundaries"]
+    },
+    {
+      "repo": "ZeKaiNie/universal-examprep-skill",
+      "url": "https://github.com/ZeKaiNie/universal-examprep-skill",
+      "pinned_sha": "20ed0633bd4923c516fa482bd0a627c190011381",
+      "license": "MIT",
+      "mode": "adapted-concepts",
+      "used_for": ["material-grounding", "progress-state", "behavior-evals"]
+    },
+    {
+      "repo": "zgl610329-wq/learn-anything-fast",
+      "url": "https://github.com/zgl610329-wq/learn-anything-fast",
+      "pinned_sha": "49a6aef010e56da3b873847f872f490d10a483e5",
+      "license": "MIT",
+      "mode": "adapted-concepts",
+      "used_for": ["learning-contract", "active-recall", "advancement-gates"]
+    },
+    {
+      "repo": "andesiwangzhiyi-alt/gongkao-shangantong",
+      "url": "https://github.com/andesiwangzhiyi-alt/gongkao-shangantong",
+      "pinned_sha": "3e332db2ac811b250921b787d8517fbeaf59832a",
+      "license": "MIT",
+      "mode": "adapted-concepts",
+      "used_for": ["spaced-review", "local-first-tracking"]
+    },
+    {
+      "repo": "cxs885187-create/--skill",
+      "url": "https://github.com/cxs885187-create/--skill",
+      "pinned_sha": "aa0467bd848ce40000e0bdd80667d4f24d946bc3",
+      "license": "NONE",
+      "mode": "concept-only",
+      "used_for": ["evidence-gates", "file-chat-fallback"]
+    },
+    {
+      "repo": "liuyuexi1987/xingce-review-pro",
+      "url": "https://github.com/liuyuexi1987/xingce-review-pro",
+      "pinned_sha": "72860f2b1993d168572e8ae5f99c8afa50cfefa2",
+      "license": "GPL-3.0",
+      "mode": "external-optional",
+      "used_for": ["research-only"]
+    },
+    {
+      "repo": "liuyuexi1987/shenlun-review-pro",
+      "url": "https://github.com/liuyuexi1987/shenlun-review-pro",
+      "pinned_sha": "66c49941aaadc2737e13b6d887363b3950629734",
+      "license": "GPL-3.0",
+      "mode": "external-optional",
+      "used_for": ["research-only"]
+    },
+    {
+      "repo": "Why-com-ui/gongkao-practice.skill",
+      "url": "https://github.com/Why-com-ui/gongkao-practice.skill",
+      "pinned_sha": "00ea6784a5c495f0857990d3a3e3d3ed5ff9e3f3",
+      "license": "AGPL-3.0",
+      "mode": "external-optional",
+      "used_for": ["research-only"]
+    }
+  ]
+}

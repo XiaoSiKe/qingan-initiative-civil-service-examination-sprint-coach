@@ -1,0 +1,22 @@
+name: 功能建议
+description: 建议新的训练模式、题型或效率能力
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 用户问题
+      description: 先描述备考者遇到的真实问题，不要只写一个功能名。
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: 示例请求与验收结果
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: 可能涉及的来源与许可证

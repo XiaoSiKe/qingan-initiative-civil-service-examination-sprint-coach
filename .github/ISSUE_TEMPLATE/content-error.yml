@@ -1,0 +1,32 @@
+name: 内容纠错
+description: 报告考公方法、政策、法律或时政内容问题
+title: "[内容纠错] "
+labels: [content]
+body:
+  - type: textarea
+    id: claim
+    attributes:
+      label: 有问题的内容
+      description: 请说明 Skill、原表述和为什么可能有误。
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: 官方来源
+      description: 优先提供国家公务员局、中国政府网、部委或省级主管部门链接。
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: 来源发布日期与核验日期
+    validations:
+      required: true
+  - type: input
+    id: scope
+    attributes:
+      label: 适用考试与地区
+      placeholder: 例如 2027 国考 / 江苏省考
+    validations:
+      required: true

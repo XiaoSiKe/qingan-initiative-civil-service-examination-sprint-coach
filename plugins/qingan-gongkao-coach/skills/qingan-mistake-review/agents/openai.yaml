@@ -1,0 +1,7 @@
+interface:
+  display_name: "青岸·错题复盘教练"
+  short_description: "从截图或文字定位错因、生成修正动作并安排二刷"
+  brand_color: "#2F6F5E"
+  default_prompt: "使用 $qingan-mistake-review 复盘这道错题，找出第一个错误断点并安排下一次回测。"
+policy:
+  allow_implicit_invocation: true

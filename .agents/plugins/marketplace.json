@@ -1,0 +1,20 @@
+{
+  "name": "qingan",
+  "interface": {
+    "displayName": "青岸计划"
+  },
+  "plugins": [
+    {
+      "name": "qingan-gongkao-coach",
+      "source": {
+        "source": "local",
+        "path": "./plugins/qingan-gongkao-coach"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education"
+    }
+  ]
+}

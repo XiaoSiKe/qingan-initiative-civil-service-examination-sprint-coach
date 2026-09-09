@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate plugin and source registry
+        run: python plugins/qingan-gongkao-coach/scripts/validate.py
+      - name: Validate upstream policy without network
+        run: python plugins/qingan-gongkao-coach/scripts/check_upstreams.py --offline
+      - name: Run unit tests
+        run: python -m unittest discover -s plugins/qingan-gongkao-coach/tests -v
+
+  package:
+    name: Reproducible release bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build release bundle
+        run: python plugins/qingan-gongkao-coach/scripts/build_release.py
+      - name: Inspect bundle
+        run: |
+          cd dist
+          sha256sum -c SHA256SUMS.txt
+          unzip -l "$(awk '{print $2}' SHA256SUMS.txt)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qingan-gongkao-coach
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
