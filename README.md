@@ -82,6 +82,24 @@ codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 
 安装后新开一个会话，直接说“青岸计划，我还有 60 天省考，每周能学 20 小时”即可。更新已安装版本可运行 `npx skills update`。
 
+<details>
+<summary><strong>♻️ 从 v0.1.0 升级：清理旧的多 Skill 安装</strong></summary>
+
+v0.2.0 更换了插件与 Skill 标识。为了避免旧入口继续显示，请先移除 v0.1.0，再安装新版。
+
+如果此前通过 Codex 插件安装：
+
+```bash
+codex plugin remove qingan-gongkao-coach@qingan
+codex plugin marketplace remove qingan
+codex plugin marketplace add XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach --ref v0.2.0
+codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
+```
+
+如果此前通过 `npx skills` 安装，运行 `npx skills remove`（全局安装则运行 `npx skills remove -g`），在交互列表中选中旧的 `qingan-*` 项全部移除，然后执行上面的新版 `npx skills add` 命令。
+
+</details>
+
 ## 💬 直接这样使用
 
 ```text

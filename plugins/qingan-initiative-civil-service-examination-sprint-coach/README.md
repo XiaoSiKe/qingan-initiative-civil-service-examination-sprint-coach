@@ -28,6 +28,10 @@
 批改我的申论概括题；材料不全时不要报精确分。
 ```
 
+## ♻️ 从 v0.1.0 升级
+
+新版标识已经改变。请先运行 `codex plugin remove qingan-gongkao-coach@qingan` 移除旧插件，再刷新 `qingan` marketplace 并安装 `qingan-initiative-civil-service-examination-sprint-coach@qingan`。若使用 `npx skills`，请通过 `npx skills remove`（全局安装加 `-g`）清除旧的 `qingan-*` 项后再安装新版，否则旧 Skill 仍会显示。
+
 ## ⚙️ 本地效率引擎
 
 Python 3.9+，无第三方依赖。默认保存到 `~/.qingan-gongkao/`，也可使用 `QINGAN_DATA_DIR` 或 `--data-dir` 覆盖。
