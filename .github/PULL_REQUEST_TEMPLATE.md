@@ -8,7 +8,7 @@
 
 ## 验证
 
-- [ ] `python3 plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/validate.py`
-- [ ] `python3 -m unittest discover -s plugins/qingan-initiative-civil-service-examination-sprint-coach/tests -v`
+- [ ] `python3 plugins/qingan/scripts/validate.py`
+- [ ] `python3 -m unittest discover -s plugins/qingan/tests -v`
 - [ ] 新增或更新了相应行为场景
 - [ ] 发布包不含用户数据、凭据、课程转写或来源不明题库

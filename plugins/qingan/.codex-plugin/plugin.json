@@ -1,0 +1,37 @@
+{
+  "name": "qingan-initiative-civil-service-examination-sprint-coach",
+  "version": "0.3.0",
+  "description": "以大学生日常为默认场景并适配所有考生的考公冲刺训练、情绪支持与效率管理统一 Skill",
+  "author": {
+    "name": "XiaoSiKe",
+    "url": "https://github.com/XiaoSiKe"
+  },
+  "homepage": "https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach",
+  "repository": "https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach",
+  "license": "MIT",
+  "keywords": [
+    "qingan-initiative",
+    "civil-service-exam",
+    "study-coach",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "青岸计划·考公冲刺教练",
+    "shortDescription": "考公冲刺训练、情绪支持与效率管理",
+    "longDescription": "以大学生日常为默认场景并适配所有考生，提供诊断、生活约束适配、学习方法、行测申论训练、错题回测、情绪支持和周度调参。",
+    "developerName": "青岸计划",
+    "category": "Education",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach",
+    "defaultPrompt": [
+      "根据我的考试日期和基础制定冲刺计划，并带我开始今天的训练。",
+      "复盘这道错题，定位错误环节并安排二刷。",
+      "总结我最近一周的学习效率，调整下周重点。"
+    ],
+    "brandColor": "#2F6F5E"
+  }
+}
