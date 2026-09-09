@@ -23,6 +23,14 @@ class ProjectToolTests(unittest.TestCase):
         registry = module.load_registry(PLUGIN_ROOT / "sources" / "upstreams.json")
         self.assertEqual(len(registry["sources"]), 10)
 
+    def test_focus_source_remains_concept_only_without_a_license_file(self):
+        registry = json.loads((PLUGIN_ROOT / "sources" / "upstreams.json").read_text(encoding="utf-8"))
+        source = next(item for item in registry["sources"] if item["repo"] == "cxs885187-create/--skill")
+        self.assertEqual(source["pinned_sha"], "aa0467bd848ce40000e0bdd80667d4f24d946bc3")
+        self.assertEqual(source["license"], "NONE")
+        self.assertEqual(source["mode"], "concept-only")
+        self.assertIn("frustration-fuse", source["used_for"])
+
     def test_release_build_is_reproducible_and_clean(self):
         module = load_module("build_release", PLUGIN_ROOT / "scripts" / "build_release.py")
         with tempfile.TemporaryDirectory() as temp:
@@ -37,6 +45,9 @@ class ProjectToolTests(unittest.TestCase):
             self.assertIn(prefix + "/plugin.json", names)
             skill_files = [name for name in names if name.endswith("/SKILL.md")]
             self.assertEqual(skill_files, [prefix + "/skills/" + prefix + "/SKILL.md"])
+            self.assertIn(prefix + "/skills/" + prefix + "/references/resilience-protocol.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/life-adapters.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/learning-and-strategy.md", names)
             self.assertFalse(any("/tests/" in name or "__pycache__" in name or name.endswith(".pyc") for name in names))
             self.assertFalse(any(".qingan-data" in name for name in names))
 

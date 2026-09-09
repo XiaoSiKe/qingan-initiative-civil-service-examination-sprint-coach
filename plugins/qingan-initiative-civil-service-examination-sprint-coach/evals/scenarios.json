@@ -34,9 +34,17 @@
   {"id":"collision-03","prompt":"我逻辑判断最近总错，帮我安排下周训练重点。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
   {"id":"collision-04","prompt":"青岸计划，批改这道申论概括题。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"shenlun"},
   {"id":"collision-05","prompt":"把这道最新时政错题加入二刷并分析错误。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"mistake"},
+  {"id":"student-01","prompt":"我大三白天有专业课，晚上宿舍很吵，每周12小时怎么排省考？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
+  {"id":"student-02","prompt":"我在职备考，经常临时加班，帮我设计不会越欠越多的周计划。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
+  {"id":"student-03","prompt":"我需要照顾家人，只能用零碎时间，第一次准备国考该怎么开始？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"diagnosis"},
+  {"id":"resilience-01","prompt":"今天模考掉了十多分，我特别难受，先别给我加任务。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
+  {"id":"resilience-02","prompt":"课程、论文和考公堆在一起，我完全学不动了，帮我保住今天的节奏。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
+  {"id":"resilience-03","prompt":"我觉得自己根本不适合考公，想放弃，能不能先陪我缓一下？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
+  {"id":"resilience-04","prompt":"错题越积越多，我很焦虑，给我一个20分钟能完成的小动作。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
   {"id":"negative-01","prompt":"帮我制定六级英语复习计划。","expected_skill":null,"expected_route":null},
   {"id":"negative-02","prompt":"如何提高大学课程学习效率？","expected_skill":null,"expected_route":null},
   {"id":"negative-03","prompt":"请修复这个Python脚本的日期错误。","expected_skill":null,"expected_route":null},
   {"id":"negative-04","prompt":"帮我写一份公司行政通知。","expected_skill":null,"expected_route":null},
-  {"id":"negative-05","prompt":"分析一下这只股票最近的走势。","expected_skill":null,"expected_route":null}
+  {"id":"negative-05","prompt":"分析一下这只股票最近的走势。","expected_skill":null,"expected_route":null},
+  {"id":"negative-06","prompt":"我最近持续焦虑失眠，请替我做医学诊断和治疗。","expected_skill":null,"expected_route":null}
 ]

@@ -18,6 +18,14 @@ from pathlib import Path
 SCHEMA_VERSION = 1
 REVIEW_INTERVALS = (1, 3, 7, 14, 30)
 VALID_EXAM_TYPES = {"national", "province", "institution"}
+VALID_LIFE_MODES = {"campus", "working", "full-time", "caregiving", "flexible"}
+LIFE_MODE_GUIDANCE = {
+    "campus": "课程与实验先占位；空堂做专项小组，晚间整块做申论或模考，考试周主动降载",
+    "working": "工作日优先短回测，周末安排整块训练；加班后不机械补欠账",
+    "full-time": "设置明确开始、午间恢复和停止点；用完成质量而不是学习时长判断进度",
+    "caregiving": "优先可中断、低启动成本任务；突发照护后重排，不追补全部欠账",
+    "flexible": "先按当前可用时间生成临时计划，用一周完成率校准真实生活约束",
+}
 VALID_RATINGS = {"again", "hard", "good", "easy"}
 VALID_ERROR_TYPES = {
     "knowledge",
@@ -90,7 +98,31 @@ def load_profile(root):
     return profile
 
 
-def init_profile(root, exam_type, exam_date, hours_per_week, province=None):
+def normalize_study_days(value):
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        raise QinganError("study_days_per_week 必须是 1 到 7 的整数")
+    if days < 1 or days > 7:
+        raise QinganError("study_days_per_week 必须是 1 到 7 的整数")
+    return days
+
+
+def normalize_life_mode(value):
+    if value not in VALID_LIFE_MODES:
+        raise QinganError("life_mode 必须是 campus、working、full-time、caregiving 或 flexible")
+    return value
+
+
+def init_profile(
+    root,
+    exam_type,
+    exam_date,
+    hours_per_week,
+    province=None,
+    study_days_per_week=6,
+    life_mode="flexible",
+):
     if exam_type not in VALID_EXAM_TYPES:
         raise QinganError("不支持的考试类型")
     exam_day = parse_date(exam_date)
@@ -107,6 +139,8 @@ def init_profile(root, exam_type, exam_date, hours_per_week, province=None):
         "exam_date": exam_day.isoformat(),
         "hours_per_week": float(hours_per_week),
         "province": province or None,
+        "study_days_per_week": normalize_study_days(study_days_per_week),
+        "life_mode": normalize_life_mode(life_mode),
         "baseline": {},
     }
     atomic_json_write(path, profile)
@@ -115,9 +149,20 @@ def init_profile(root, exam_type, exam_date, hours_per_week, province=None):
     return profile
 
 
-def update_profile(root, exam_type=None, exam_date=None, hours_per_week=None, province=None):
+def update_profile(
+    root,
+    exam_type=None,
+    exam_date=None,
+    hours_per_week=None,
+    province=None,
+    study_days_per_week=None,
+    life_mode=None,
+):
     profile = load_profile(root)
-    if exam_type is None and exam_date is None and hours_per_week is None and province is None:
+    if all(
+        value is None
+        for value in (exam_type, exam_date, hours_per_week, province, study_days_per_week, life_mode)
+    ):
         raise QinganError("至少提供一项要更新的档案字段")
     updated = dict(profile)
     if exam_type is not None:
@@ -132,6 +177,10 @@ def update_profile(root, exam_type=None, exam_date=None, hours_per_week=None, pr
         updated["hours_per_week"] = float(hours_per_week)
     if province is not None:
         updated["province"] = province or None
+    if study_days_per_week is not None:
+        updated["study_days_per_week"] = normalize_study_days(study_days_per_week)
+    if life_mode is not None:
+        updated["life_mode"] = normalize_life_mode(life_mode)
     ensure_layout(root)
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     backup = root / "backups" / ("profile-%s.json" % stamp)
@@ -522,7 +571,10 @@ def today_plan(root, today=None):
     due = due_reviews(root, day.isoformat(), limit=20)["due"]
     report = weekly_report(root, end_date=day.isoformat())
     priority = report.get("priority_module") or "当前最弱模块"
-    daily_budget = max(3, int(round(float(info["profile"]["hours_per_week"]) * 60 / 6)))
+    study_days = normalize_study_days(info["profile"].get("study_days_per_week", 6))
+    life_mode = info["profile"].get("life_mode", "flexible")
+    normalize_life_mode(life_mode)
+    daily_budget = max(3, int(round(float(info["profile"]["hours_per_week"]) * 60 / study_days)))
     review_minutes = min(max(1, len(due) * 5), max(1, daily_budget // 4))
     weakness_minutes = max(1, int(round((daily_budget - review_minutes) * 0.6)))
     transfer_minutes = daily_budget - review_minutes - weakness_minutes
@@ -557,8 +609,65 @@ def today_plan(root, today=None):
         "date": day.isoformat(),
         "phase": info["phase"],
         "days_left": info["days_left"],
+        "study_days_per_week": study_days,
+        "life_mode": life_mode,
+        "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
         "daily_budget_minutes": sum(item["duration_minutes"] for item in blocks),
         "blocks": blocks,
+    }
+
+
+def minimum_day_plan(root, today=None, minutes=20):
+    """Return a deliberately small plan for a low-energy or overloaded day."""
+    info = status(root, today=today)
+    day = parse_date(today) if today else dt.date.today()
+    try:
+        budget = int(minutes)
+    except (TypeError, ValueError):
+        raise QinganError("minutes 必须是 5 到 180 的整数")
+    if budget < 5 or budget > 180:
+        raise QinganError("minutes 必须是 5 到 180 的整数")
+    if info["phase"] == "exam-passed":
+        return {
+            "date": day.isoformat(),
+            "phase": info["phase"],
+            "minutes": 0,
+            "blocks": [],
+            "required_action": "考试日期已过，请更新档案后再生成最低可行训练日",
+        }
+    due = due_reviews(root, day.isoformat(), limit=3)["due"]
+    report = weekly_report(root, end_date=day.isoformat())
+    priority = report.get("priority_module") or "最熟悉的已学模块"
+    life_mode = info["profile"].get("life_mode", "flexible")
+    normalize_life_mode(life_mode)
+    settle_minutes = min(3, max(1, budget // 8))
+    recall_minutes = min(max(1, len(due) * 3), max(1, (budget - settle_minutes) // 3))
+    action_minutes = budget - settle_minutes - recall_minutes
+    return {
+        "date": day.isoformat(),
+        "phase": info["phase"],
+        "minutes": budget,
+        "message": "今天不追欠账，只保住节奏；完成这一小轮就算有效训练。",
+        "life_mode": life_mode,
+        "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
+        "blocks": [
+            {
+                "kind": "settle",
+                "duration_minutes": settle_minutes,
+                "task": "放下总进度，只写出今天能控制的一件事",
+            },
+            {
+                "kind": "gentle-recall",
+                "duration_minutes": recall_minutes,
+                "task": "回测 %d 道到期错题；无到期题时口述一个已学方法" % len(due),
+            },
+            {
+                "kind": "small-win",
+                "duration_minutes": action_minutes,
+                "task": "完成一小组 %s 熟悉题，达到时间即停止" % priority,
+            },
+        ],
+        "done_when": "完成三个小块并记录一句真实感受，不要求追回落后进度",
     }
 
 
@@ -574,6 +683,8 @@ def week_plan(root, end_date=None):
             "required_action": "考试日期已过，请更新档案后再生成周计划",
         }
     report = weekly_report(root, end_date=end_date)
+    life_mode = info["profile"].get("life_mode", "flexible")
+    normalize_life_mode(life_mode)
     modules = sorted(
         report["current"]["by_module"].items(),
         key=lambda item: (-item[1]["attempts"], item[0]),
@@ -592,6 +703,8 @@ def week_plan(root, end_date=None):
         "phase": info["phase"],
         "days_left": info["days_left"],
         "weekly_budget_minutes": budget,
+        "life_mode": life_mode,
+        "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
         "evidence": "recent-training-data" if report["current"]["attempts"] else "temporary-baseline",
         "lanes": [
             {"kind": "focus", "module": focus, "minutes": focus_minutes},

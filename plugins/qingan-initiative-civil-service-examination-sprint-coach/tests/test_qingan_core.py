@@ -35,10 +35,27 @@ class QinganCoreTests(unittest.TestCase):
             core.init_profile(self.root, "province", "2031-01-01", 20)
 
     def test_profile_update_creates_backup(self):
-        result = core.update_profile(self.root, exam_date="2031-03-15", hours_per_week=18)
+        result = core.update_profile(
+            self.root,
+            exam_date="2031-03-15",
+            hours_per_week=18,
+            study_days_per_week=5,
+            life_mode="campus",
+        )
         self.assertEqual(result["profile"]["exam_date"], "2031-03-15")
         self.assertEqual(result["profile"]["hours_per_week"], 18.0)
+        self.assertEqual(result["profile"]["study_days_per_week"], 5)
+        self.assertEqual(result["profile"]["life_mode"], "campus")
         self.assertTrue(Path(result["backup"]).is_file())
+        plan = core.today_plan(self.root, today="2030-09-01")
+        self.assertEqual(plan["daily_budget_minutes"], 216)
+        self.assertIn("课程", plan["schedule_guidance"])
+
+    def test_invalid_life_constraints_are_rejected(self):
+        with self.assertRaises(core.QinganError):
+            core.update_profile(self.root, study_days_per_week=0)
+        with self.assertRaises(core.QinganError):
+            core.update_profile(self.root, life_mode="always-on")
 
     def test_session_metrics_and_weekly_priority(self):
         session = core.record_session(self.root, {
@@ -132,6 +149,26 @@ class QinganCoreTests(unittest.TestCase):
         self.assertEqual(sum(item["duration_minutes"] for item in result["blocks"]), 250)
         self.assertTrue(all(item["done_when"] for item in result["blocks"]))
 
+    def test_v01_profile_without_optional_life_constraints_still_works(self):
+        profile_path = self.root / "profile.json"
+        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile.pop("study_days_per_week")
+        profile.pop("life_mode")
+        core.atomic_json_write(profile_path, profile)
+        result = core.today_plan(self.root, today="2030-11-25")
+        self.assertEqual(result["study_days_per_week"], 6)
+        self.assertEqual(result["life_mode"], "flexible")
+        self.assertEqual(result["daily_budget_minutes"], 250)
+
+    def test_minimum_day_preserves_rhythm_without_creating_debt(self):
+        result = core.minimum_day_plan(self.root, today="2030-11-25", minutes=17)
+        self.assertEqual(result["minutes"], 17)
+        self.assertEqual(len(result["blocks"]), 3)
+        self.assertEqual(sum(item["duration_minutes"] for item in result["blocks"]), 17)
+        self.assertIn("不追欠账", result["message"])
+        self.assertIn("不要求追回", result["done_when"])
+        self.assertIn("真实生活约束", result["schedule_guidance"])
+
     def test_week_plan_uses_one_focus_one_maintenance_and_one_review_lane(self):
         core.record_session(self.root, {
             "timestamp": "2030-09-02T10:00:00+00:00",
@@ -207,6 +244,24 @@ class QinganCliTests(unittest.TestCase):
                 env=dict(os.environ, PYTHONIOENCODING="cp1252"),
             )
             self.assertEqual(len(json.loads(planned.stdout)["lanes"]), 3)
+            minimum = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "qingan.py"),
+                    "--data-dir",
+                    temp,
+                    "minimum-day",
+                    "--date",
+                    "2030-09-07",
+                    "--minutes",
+                    "15",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(json.loads(minimum.stdout)["minutes"], 15)
 
 
 if __name__ == "__main__":

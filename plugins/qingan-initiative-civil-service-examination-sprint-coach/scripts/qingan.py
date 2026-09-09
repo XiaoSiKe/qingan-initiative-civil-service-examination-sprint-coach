@@ -15,6 +15,7 @@ from qingan_core import (
     export_data,
     init_profile,
     migrate,
+    minimum_day_plan,
     rate_review,
     record_error,
     record_session,
@@ -60,12 +61,23 @@ def parser():
     init.add_argument("--exam-date", required=True)
     init.add_argument("--hours-per-week", required=True, type=float)
     init.add_argument("--province")
+    init.add_argument("--study-days-per-week", type=int, default=6)
+    init.add_argument(
+        "--life-mode",
+        choices=("campus", "working", "full-time", "caregiving", "flexible"),
+        default="flexible",
+    )
 
     update = commands.add_parser("update-profile", help="备份后更新备考档案")
     update.add_argument("--exam-type", choices=("national", "province", "institution"))
     update.add_argument("--exam-date")
     update.add_argument("--hours-per-week", type=float)
     update.add_argument("--province")
+    update.add_argument("--study-days-per-week", type=int)
+    update.add_argument(
+        "--life-mode",
+        choices=("campus", "working", "full-time", "caregiving", "flexible"),
+    )
 
     commands.add_parser("doctor", help="检查数据目录与记录完整性")
     status_parser = commands.add_parser("status", help="查看总体状态")
@@ -74,6 +86,9 @@ def parser():
     today.add_argument("--date")
     week = commands.add_parser("week-plan", help="按证据生成主攻、保持与暂停项")
     week.add_argument("--end-date")
+    minimum = commands.add_parser("minimum-day", help="生成低能量日的最低可行训练计划")
+    minimum.add_argument("--date")
+    minimum.add_argument("--minutes", type=int, default=20)
 
     session = commands.add_parser("record-session", help="追加学习会话")
     session.add_argument("--json", required=True, dest="json_source")
@@ -105,9 +120,25 @@ def main(argv=None):
     root = data_root(args.data_dir)
     try:
         if args.command == "init":
-            value = init_profile(root, args.exam_type, args.exam_date, args.hours_per_week, args.province)
+            value = init_profile(
+                root,
+                args.exam_type,
+                args.exam_date,
+                args.hours_per_week,
+                args.province,
+                args.study_days_per_week,
+                args.life_mode,
+            )
         elif args.command == "update-profile":
-            value = update_profile(root, args.exam_type, args.exam_date, args.hours_per_week, args.province)
+            value = update_profile(
+                root,
+                args.exam_type,
+                args.exam_date,
+                args.hours_per_week,
+                args.province,
+                args.study_days_per_week,
+                args.life_mode,
+            )
         elif args.command == "doctor":
             value = doctor(root)
         elif args.command == "status":
@@ -116,6 +147,8 @@ def main(argv=None):
             value = today_plan(root, today=args.date)
         elif args.command == "week-plan":
             value = week_plan(root, end_date=args.end_date)
+        elif args.command == "minimum-day":
+            value = minimum_day_plan(root, today=args.date, minutes=args.minutes)
         elif args.command == "record-session":
             value = record_session(root, load_payload(args.json_source))
         elif args.command == "record-error":

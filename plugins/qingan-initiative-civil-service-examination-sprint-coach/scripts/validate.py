@@ -14,6 +14,7 @@ EXPECTED_ROUTES = {
     "sprint",
     "materials",
     "mistake",
+    "resilience",
     "verbal",
     "figure",
     "logic",
@@ -106,9 +107,18 @@ def validate():
         require(re.fullmatch(r"[0-9a-f]{40}", source.get("pinned_sha", "")), "bad source SHA for %s" % source.get("repo"), errors)
         if source.get("license") in {"NONE", "GPL-3.0", "AGPL-3.0"}:
             require(source.get("mode") in {"concept-only", "external-optional"}, "restricted source mode for %s" % source.get("repo"), errors)
+    focus_source = next(
+        (item for item in registry.get("sources", []) if item.get("repo") == "cxs885187-create/--skill"),
+        None,
+    )
+    require(focus_source is not None, "missing重点研究源", errors)
+    if focus_source:
+        require(focus_source.get("license") == "NONE", "重点研究源 must remain unlicensed", errors)
+        require(focus_source.get("mode") == "concept-only", "重点研究源 must remain concept-only", errors)
+        require(len(focus_source.get("used_for", [])) >= 8, "重点研究源蒸馏范围不完整", errors)
 
     scenarios = json.loads((plugin_root / "evals" / "scenarios.json").read_text(encoding="utf-8"))
-    require(len(scenarios) == 40, "eval suite must contain exactly 40 scenarios", errors)
+    require(len(scenarios) == 48, "eval suite must contain exactly 48 scenarios", errors)
     scenario_ids = {item.get("id") for item in scenarios}
     require(len(scenario_ids) == len(scenarios), "scenario ids must be unique", errors)
     route_counts = {route: 0 for route in EXPECTED_ROUTES}
@@ -126,6 +136,12 @@ def validate():
     for route, count in route_counts.items():
         require(count >= 3, "route %s needs at least 3 scenarios" % route, errors)
 
+    root_readme = (repo_root / "README.md").read_text(encoding="utf-8")
+    require("一万年太久，只争朝夕！" in root_readme, "README missing requested opening line", errors)
+    require("https://github.com/cxs885187-create/--skill" in root_readme, "README missing重点研究源", errors)
+    require("## 🧱 青岸的九个系统" in root_readme, "README missing system map", errors)
+    require("## ❤️ 最难受的时候，青岸先接住你" in root_readme, "README missing resilience system", errors)
+
     forbidden_suffixes = {".pdf", ".docx", ".pptx", ".mp4"}
     for path in plugin_root.rglob("*"):
         if path.is_file() and path.suffix.lower() in forbidden_suffixes:
@@ -135,7 +151,7 @@ def validate():
         for error in errors:
             print("ERROR: " + error, file=sys.stderr)
         return 1
-    print("Validated manifests, 1 unified skill, 10 internal routes, sources, links, and 40 eval scenarios.")
+    print("Validated manifests, 1 unified skill, 11 internal routes, sources, links, and 48 eval scenarios.")
     return 0
 
 

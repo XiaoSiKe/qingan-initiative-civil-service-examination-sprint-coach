@@ -56,7 +56,16 @@
       "pinned_sha": "aa0467bd848ce40000e0bdd80667d4f24d946bc3",
       "license": "NONE",
       "mode": "concept-only",
-      "used_for": ["evidence-gates", "file-chat-fallback"]
+      "used_for": [
+        "evidence-gates",
+        "file-chat-fallback",
+        "skeleton-first-materials",
+        "actionable-topic-cards",
+        "short-round-self-testing",
+        "self-assessment-calibration",
+        "frustration-fuse",
+        "incremental-updates"
+      ]
     },
     {
       "repo": "liuyuexi1987/xingce-review-pro",
