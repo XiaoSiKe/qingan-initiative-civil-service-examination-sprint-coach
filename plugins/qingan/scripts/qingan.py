@@ -12,6 +12,7 @@ from qingan_core import (
     data_root,
     doctor,
     due_reviews,
+    efficiency_report,
     export_data,
     init_profile,
     migrate,
@@ -106,6 +107,8 @@ def parser():
 
     weekly = commands.add_parser("weekly", help="生成最近七天与前七天对比")
     weekly.add_argument("--end-date")
+    evaluate = commands.add_parser("evaluate", help="评估执行、正确率、时间效率、回测与证据质量")
+    evaluate.add_argument("--end-date")
     material = commands.add_parser("register-material", help="登记用户学习资料及哈希")
     material.add_argument("--json", required=True, dest="json_source")
     export = commands.add_parser("export", help="导出报告或事件数据")
@@ -159,6 +162,8 @@ def main(argv=None):
             value = rate_review(root, args.question_id, args.rating, when=args.timestamp)
         elif args.command == "weekly":
             value = weekly_report(root, end_date=args.end_date)
+        elif args.command == "evaluate":
+            value = efficiency_report(root, end_date=args.end_date)
         elif args.command == "register-material":
             value = register_material(root, load_payload(args.json_source))
         elif args.command == "export":

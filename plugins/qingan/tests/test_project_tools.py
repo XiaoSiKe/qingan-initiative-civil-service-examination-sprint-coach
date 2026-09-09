@@ -21,7 +21,14 @@ class ProjectToolTests(unittest.TestCase):
     def test_offline_upstream_registry_validation(self):
         module = load_module("check_upstreams", PLUGIN_ROOT / "scripts" / "check_upstreams.py")
         registry = module.load_registry(PLUGIN_ROOT / "sources" / "upstreams.json")
-        self.assertEqual(len(registry["sources"]), 10)
+        self.assertEqual(len(registry["sources"]), 11)
+
+    def test_new_mit_zero_source_is_pinned_and_scope_limited(self):
+        registry = json.loads((PLUGIN_ROOT / "sources" / "upstreams.json").read_text(encoding="utf-8"))
+        source = next(item for item in registry["sources"] if item["repo"] == "Zhaojixu/shangan-gongkao")
+        self.assertEqual(source["pinned_sha"], "5f2c6f0d6b29a5b86a9e29f9569a2de102779e96")
+        self.assertEqual(source["license"], "MIT-0")
+        self.assertEqual(source["used_for"], ["multi-window-planning", "material-role-classification"])
 
     def test_focus_source_remains_concept_only_without_a_license_file(self):
         registry = json.loads((PLUGIN_ROOT / "sources" / "upstreams.json").read_text(encoding="utf-8"))
@@ -48,6 +55,10 @@ class ProjectToolTests(unittest.TestCase):
             self.assertIn(prefix + "/skills/" + prefix + "/references/resilience-protocol.md", names)
             self.assertIn(prefix + "/skills/" + prefix + "/references/life-adapters.md", names)
             self.assertIn(prefix + "/skills/" + prefix + "/references/learning-and-strategy.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/communication.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/efficiency.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/application.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/interview.md", names)
             self.assertFalse(any("/tests/" in name or "__pycache__" in name or name.endswith(".pyc") for name in names))
             self.assertFalse(any(".qingan-data" in name for name in names))
 
