@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "qingan-gongkao-coach",
+      "name": "qingan-initiative-civil-service-examination-sprint-coach",
       "source": {
         "source": "local",
-        "path": "./plugins/qingan-gongkao-coach"
+        "path": "./plugins/qingan-initiative-civil-service-examination-sprint-coach"
       },
       "policy": {
         "installation": "AVAILABLE",

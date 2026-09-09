@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python plugins/qingan-gongkao-coach/scripts/check_upstreams.py --fail-on-change > upstream-report.json
+          python plugins/qingan-initiative-civil-service-examination-sprint-coach/scripts/check_upstreams.py --fail-on-change > upstream-report.json
           result=$?
           cat upstream-report.json
           if [ "$result" -eq 3 ]; then

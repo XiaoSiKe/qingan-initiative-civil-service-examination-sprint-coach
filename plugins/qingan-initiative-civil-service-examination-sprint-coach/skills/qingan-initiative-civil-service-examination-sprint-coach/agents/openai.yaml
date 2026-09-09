@@ -1,0 +1,7 @@
+interface:
+  display_name: "青岸计划·考公冲刺教练"
+  short_description: "大学生考公冲刺训练、复盘与效率管理总入口"
+  brand_color: "#2F6F5E"
+  default_prompt: "使用 $qingan-initiative-civil-service-examination-sprint-coach 根据我的考试日期和基础制定冲刺路径，并带我开始今天的训练。"
+policy:
+  allow_implicit_invocation: true

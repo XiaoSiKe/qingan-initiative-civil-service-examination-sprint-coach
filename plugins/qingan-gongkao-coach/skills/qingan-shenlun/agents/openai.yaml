@@ -1,7 +1,0 @@
-interface:
-  display_name: "青岸·申论冲刺教练"
-  short_description: "按材料证据训练申论提点、组织、表达与批改"
-  brand_color: "#2F6F5E"
-  default_prompt: "使用 $qingan-shenlun 批改我的申论答案，逐项对应材料依据并给出最小修改方案。"
-policy:
-  allow_implicit_invocation: true

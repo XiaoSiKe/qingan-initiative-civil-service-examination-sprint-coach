@@ -1,7 +1,0 @@
-interface:
-  display_name: "青岸·冲刺效率教练"
-  short_description: "根据倒计时、错题和周数据动态安排考公训练"
-  brand_color: "#2F6F5E"
-  default_prompt: "使用 $qingan-sprint-manager 复盘我最近一周的效率，并给出下周三个最高优先任务。"
-policy:
-  allow_implicit_invocation: true
