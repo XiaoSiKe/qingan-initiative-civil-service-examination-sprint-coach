@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -187,13 +188,14 @@ class QinganCliTests(unittest.TestCase):
                 "--hours-per-week",
                 "20",
             ]
-            initialized = subprocess.run(command, check=True, capture_output=True, text=True)
+            initialized = subprocess.run(command, check=True, capture_output=True, text=True, encoding="utf-8")
             self.assertEqual(json.loads(initialized.stdout)["schema_version"], 1)
             checked = subprocess.run(
                 [sys.executable, str(SCRIPTS / "qingan.py"), "--data-dir", temp, "doctor"],
                 check=True,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
             )
             self.assertTrue(json.loads(checked.stdout)["ok"])
             planned = subprocess.run(
@@ -201,6 +203,8 @@ class QinganCliTests(unittest.TestCase):
                 check=True,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                env=dict(os.environ, PYTHONIOENCODING="cp1252"),
             )
             self.assertEqual(len(json.loads(planned.stdout)["lanes"]), 3)
 

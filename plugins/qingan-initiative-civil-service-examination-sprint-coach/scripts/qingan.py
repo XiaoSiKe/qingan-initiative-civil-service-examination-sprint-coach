@@ -37,8 +37,17 @@ def load_payload(source):
         raise QinganError("无法读取 JSON 输入：%s" % exc)
 
 
-def emit(value):
-    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+def emit(value, stream=None):
+    """Write UTF-8 JSON even when a Windows console reports a legacy code page."""
+    destination = stream or sys.stdout
+    payload = json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    binary = getattr(destination, "buffer", None)
+    if binary is not None:
+        binary.write(payload.encode("utf-8"))
+        binary.flush()
+    else:
+        destination.write(payload)
+        destination.flush()
 
 
 def parser():
@@ -128,7 +137,7 @@ def main(argv=None):
         emit(value)
         return 0
     except QinganError as exc:
-        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        emit({"ok": False, "error": str(exc)}, stream=sys.stderr)
         return 2
 
 
