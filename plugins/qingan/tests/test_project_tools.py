@@ -21,7 +21,19 @@ class ProjectToolTests(unittest.TestCase):
     def test_offline_upstream_registry_validation(self):
         module = load_module("check_upstreams", PLUGIN_ROOT / "scripts" / "check_upstreams.py")
         registry = module.load_registry(PLUGIN_ROOT / "sources" / "upstreams.json")
-        self.assertEqual(len(registry["sources"]), 11)
+        self.assertEqual(len(registry["sources"]), 12)
+
+    def test_huasheng13_remains_concept_only_and_routes_through_qingan(self):
+        registry = json.loads((PLUGIN_ROOT / "sources" / "upstreams.json").read_text(encoding="utf-8"))
+        source = next(item for item in registry["sources"] if item["repo"] == "WangJunqing-coder/huasheng13-skill")
+        self.assertEqual(source["pinned_sha"], "6a43d776741f69a231eb2d75f9d5d59efe870659")
+        self.assertEqual((source["license"], source["mode"]), ("NONE", "concept-only"))
+        skill_root = PLUGIN_ROOT / "skills" / "qingan-initiative-civil-service-examination-sprint-coach"
+        skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        integration = (skill_root / "references" / "integration-map.md").read_text(encoding="utf-8")
+        self.assertIn("rapid-calculation.md", skill_text)
+        self.assertIn("gongkao-huasheng13", integration)
+        self.assertIn("已安装", integration)
 
     def test_new_mit_zero_source_is_pinned_and_scope_limited(self):
         registry = json.loads((PLUGIN_ROOT / "sources" / "upstreams.json").read_text(encoding="utf-8"))
@@ -59,6 +71,7 @@ class ProjectToolTests(unittest.TestCase):
             self.assertIn(prefix + "/skills/" + prefix + "/references/efficiency.md", names)
             self.assertIn(prefix + "/skills/" + prefix + "/references/application.md", names)
             self.assertIn(prefix + "/skills/" + prefix + "/references/interview.md", names)
+            self.assertIn(prefix + "/skills/" + prefix + "/references/rapid-calculation.md", names)
             self.assertFalse(any("/tests/" in name or "__pycache__" in name or name.endswith(".pyc") for name in names))
             self.assertFalse(any(".qingan-data" in name for name in names))
 

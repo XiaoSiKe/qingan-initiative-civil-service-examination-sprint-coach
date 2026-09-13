@@ -3,7 +3,7 @@ name: qingan-initiative-civil-service-examination-sprint-coach
 description: 面向大学生并适配所有考生的青岸计划·考公冲刺教练。统一处理国考、省考和事业单位的诊断规划、生活适配、学习方法、资料与错题、行测申论、报考选岗、面试训练、效率评估和情绪支持；根据实际意图在一个 Skill 内按需加载系统，并用通俗、亲和、适度幽默的方式教学。
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
   language: zh-CN
   official_english_name: "Qing'an Initiative · Civil Service Examination Sprint Coach"
 ---
@@ -33,13 +33,13 @@ metadata:
 | `verbal` | 言语理解、逻辑填空 | [言语协议](references/verbal-protocol.md) |
 | `figure` | 图形推理、空间重构 | [图推协议](references/figure-protocol.md) |
 | `logic` | 定义、类比、条件、真假、削弱加强 | [逻辑协议](references/logic-protocol.md) |
-| `data-quant` | 资料分析、数量关系 | [数资协议](references/data-quant-protocol.md) |
+| `data-quant` | 资料分析、数量关系 | [数资协议](references/data-quant-protocol.md)；ABRX、415 份数、截位直除、假设分配或计算提速再读 [速算协议](references/rapid-calculation.md) |
 | `politics` | 政治理论、常识、公基、法律、时政 | [政治常识协议](references/politics-protocol.md)；易变内容再读 [官方来源](references/official-sources.md) |
 | `shenlun` | 概括、分析、对策、应用文、大作文、批改 | [申论协议](references/shenlun-protocol.md) |
 | `application` | 报考资格、公告、职位表、选岗、流程 | [报考选岗](references/application.md) + [来源协议](references/source-policy.md) + [官方来源](references/official-sources.md) |
 | `interview` | 结构化面试、模拟作答、逐题点评 | [面试训练](references/interview.md) + [通俗表达](references/communication.md) |
 
-涉及事实、来源、真题身份或最新考试信息时，同时读取 [references/source-policy.md](references/source-policy.md)。用户明确点名外部方法时，再读取 [references/integration-map.md](references/integration-map.md)。
+涉及事实、来源、真题身份或最新考试信息时，同时读取 [references/source-policy.md](references/source-policy.md)。用户明确点名外部方法，或请求 ABRX、415 份数、截位直除、假设分配时，再读取 [references/integration-map.md](references/integration-map.md)：仅在宿主已安装 `gongkao-huasheng13` 时按该协议辅助调用，青岸负责核算与最终反馈。
 
 制定完整学习方案、解释训练设计或用户询问方法论时，读取 [references/learning-and-strategy.md](references/learning-and-strategy.md)。不要为了显得有理论而在每次讲题中堆术语；方法必须落实为下一步动作。
 

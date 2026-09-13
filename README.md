@@ -14,7 +14,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-black)](LICENSE)
 
-1 个统一 Skill · 14 条内部能力路由 · 60 个行为场景 · 本地学习档案
+1 个统一 Skill · 14 条内部能力路由 · 64 个行为场景 · 本地学习档案
 
 </div>
 
@@ -139,7 +139,7 @@ npx skills add XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach
 在 Codex 中也可以按插件安装：
 
 ```bash
-codex plugin marketplace add XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach --ref v0.4.0
+codex plugin marketplace add XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach --ref v0.5.0
 codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 ```
 
@@ -148,14 +148,14 @@ codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 <details>
 <summary><strong>♻️ 从旧版升级</strong></summary>
 
-如果仍在使用 v0.1.0 的多 Skill 版本，请先移除旧入口，再安装当前版本。v0.2.0/v0.3.0 用户可使用 `npx skills update`；通过固定 Tag 安装的 Codex marketplace 需要把 `--ref` 更新为 `v0.4.0`。
+如果仍在使用 v0.1.0 的多 Skill 版本，请先移除旧入口，再安装当前版本。v0.2.0/v0.3.0/v0.4.0 用户可使用 `npx skills update`；通过固定 Tag 安装的 Codex marketplace 需要把 `--ref` 更新为 `v0.5.0`。
 
 如果此前通过 Codex 插件安装：
 
 ```bash
 codex plugin remove qingan-gongkao-coach@qingan
 codex plugin marketplace remove qingan
-codex plugin marketplace add XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach --ref v0.4.0
+codex plugin marketplace add XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach --ref v0.5.0
 codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 ```
 
@@ -171,6 +171,8 @@ codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 我最近资料分析正确率 65%，判断推理 78%，申论还没完整写过，安排今天三项。
 
 这道资料分析错题我选了 A，参考答案是 C，帮我找第一个错误断点并安排二刷。
+
+用 415 份数法算现期 5400、同比增长 8% 的增长量，列式后复核答案。
 
 根据我上传的讲义做一组言语学习卡，保留页码，先别给自测答案。
 
@@ -241,8 +243,11 @@ codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 | [`redscarf-gongkao-skills`](https://github.com/MUMU0208/redscarf-gongkao-skills) | 错因证据、置信度、表现—原因—修正动作 | 不复制课程转写和来源不明案例 |
 | [`kaogong-skill`](https://github.com/KeWang0622/kaogong-skill) | 报考/面试路由、官方与行业口径分层 | 不复制易过时的年份数字和固定评分权重 |
 | [`shangan-gongkao`](https://github.com/Zhaojixu/shangan-gongkao) | 7/15/30/60天时间窗、资料按核心/刷题/查漏分类 | 不引入其本地题库路径和可能受版权约束的材料名录 |
+| [`huasheng13-skill`](https://github.com/WangJunqing-coder/huasheng13-skill) | 独立实现 ABRX 关系、份数解释、选项精度与速算练习 | 无独立许可证，只做概念研究；不复制原文、题目或课程材料 |
 
 来源多不等于规则多。只有能提高判断、训练或验证质量的方法才进入统一协议；相互冲突时，以青岸的官方来源、用户真实数据和单 Skill 架构为准。
+
+花生十三方向的精确请求（ABRX、415 份数、截位直除、假设分配）会先走青岸的资料分析速算协议；若宿主已安装 `gongkao-huasheng13`，可直接调用它辅助解释，答案仍由青岸核算并复盘。普通资料分析问题无需安装外部 Skill。
 
 ### 从经典哲学转成可执行策略
 
@@ -380,7 +385,7 @@ python3 plugins/qingan/scripts/check_upstreams.py --offline
 python3 plugins/qingan/scripts/build_release.py
 ```
 
-验证覆盖单 Skill 结构、14 条内部路由、60 个正例/冲突/负例场景、三层十二系统、通俗讲解与幽默边界、大学生与通用生活适配、报考面试、效率评估、情绪低谷、学习档案、日周计划、最低可行训练日、错题回测、旧数据兼容、跨平台兼容和可复现发布包。
+验证覆盖单 Skill 结构、14 条内部路由、64 个正例/冲突/负例场景、三层十二系统、通俗讲解与幽默边界、大学生与通用生活适配、报考面试、效率评估、情绪低谷、学习档案、日周计划、最低可行训练日、错题回测、旧数据兼容、跨平台兼容和可复现发布包。
 
 方法来源、许可证和吸收边界见 [第三方声明](plugins/qingan/THIRD_PARTY_NOTICES.md)，参与维护见 [贡献指南](plugins/qingan/CONTRIBUTING.md)。
 

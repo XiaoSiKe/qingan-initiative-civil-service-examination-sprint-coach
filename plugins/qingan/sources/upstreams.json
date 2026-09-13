@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-09-09",
+  "checked_at": "2026-09-13",
   "sources": [
     {
       "repo": "KaguraNanaga/kaogong-study-tracker",
@@ -74,6 +74,14 @@
         "frustration-fuse",
         "incremental-updates"
       ]
+    },
+    {
+      "repo": "WangJunqing-coder/huasheng13-skill",
+      "url": "https://github.com/WangJunqing-coder/huasheng13-skill",
+      "pinned_sha": "6a43d776741f69a231eb2d75f9d5d59efe870659",
+      "license": "NONE",
+      "mode": "concept-only",
+      "used_for": ["ABRX-relationship-routing", "growth-parts-explanation", "option-aware-calculation", "method-specific-external-handoff"]
     },
     {
       "repo": "liuyuexi1987/xingce-review-pro",
