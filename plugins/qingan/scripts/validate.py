@@ -121,7 +121,7 @@ def validate():
         require(len(focus_source.get("used_for", [])) >= 8, "重点研究源蒸馏范围不完整", errors)
 
     scenarios = json.loads((plugin_root / "evals" / "scenarios.json").read_text(encoding="utf-8"))
-    require(len(scenarios) == 60, "eval suite must contain exactly 60 scenarios", errors)
+    require(len(scenarios) >= 64, "eval suite must contain at least 64 scenarios", errors)
     scenario_ids = {item.get("id") for item in scenarios}
     require(len(scenario_ids) == len(scenarios), "scenario ids must be unique", errors)
     route_counts = {route: 0 for route in EXPECTED_ROUTES}
@@ -138,6 +138,23 @@ def validate():
                 route_counts[route] += 1
     for route, count in route_counts.items():
         require(count >= 3, "route %s needs at least 3 scenarios" % route, errors)
+
+    rapid_scenarios = [item for item in scenarios if item.get("id", "").startswith("rapid-")]
+    require(len(rapid_scenarios) >= 4, "rapid-calculation needs four routing scenarios", errors)
+    for item in rapid_scenarios:
+        require(item.get("expected_reference") == "rapid-calculation.md", "rapid scenario missing protocol: %s" % item.get("id"), errors)
+        require(item.get("external_skill_if_installed") == "gongkao-huasheng13", "rapid scenario missing conditional external route: %s" % item.get("id"), errors)
+
+    huasheng = next((item for item in registry.get("sources", []) if item.get("repo") == "WangJunqing-coder/huasheng13-skill"), None)
+    require(huasheng is not None, "missing huasheng13 source", errors)
+    if huasheng:
+        require(huasheng.get("license") == "NONE" and huasheng.get("mode") == "concept-only", "huasheng13 must remain concept-only without a license file", errors)
+    rapid = (skills_root / SKILL_NAME / "references" / "rapid-calculation.md")
+    require(rapid.is_file(), "missing rapid-calculation protocol", errors)
+    if rapid.is_file():
+        rapid_text = rapid.read_text(encoding="utf-8")
+        for method in ("ABRX", "415", "截位直除", "假设分配"):
+            require(method in rapid_text, "rapid-calculation missing %s" % method, errors)
 
     root_readme = (repo_root / "README.md").read_text(encoding="utf-8")
     require("一万年太久，只争朝夕！" in root_readme, "README missing requested opening line", errors)
@@ -159,7 +176,7 @@ def validate():
         for error in errors:
             print("ERROR: " + error, file=sys.stderr)
         return 1
-    print("Validated manifests, 1 unified skill, 14 internal routes, sources, links, and 60 eval scenarios.")
+    print("Validated manifests, 1 unified skill, 14 internal routes, sources, links, and %s eval scenarios." % len(scenarios))
     return 0
 
 

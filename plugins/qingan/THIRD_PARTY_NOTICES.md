@@ -24,6 +24,7 @@
 以下来源仅用于概念研究或可选外部联动，没有代码、模板或长文本进入青岸发布包：
 
 - `cxs885187-create/--skill`（只有 README 许可证描述，没有独立许可证文件；用于研究材料分级、骨架先行、短轮自测、自评校准、受挫熔断与增量更新等抽象方法）
+- `WangJunqing-coder/huasheng13-skill`（README 自述 MIT，但固定提交没有独立许可证文件，GitHub 未识别许可证；仅研究资料分析关系、份数解释、选项精度与专项联动，不分发原文、题目或课程材料）
 - `liuyuexi1987/xingce-review-pro`（GPL-3.0）
 - `liuyuexi1987/shenlun-review-pro`（GPL-3.0）
 - `Why-com-ui/gongkao-practice.skill`（AGPL-3.0）
