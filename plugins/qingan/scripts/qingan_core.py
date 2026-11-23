@@ -421,15 +421,19 @@ def due_reviews(root, on_date=None, limit=10):
     load_profile(root)
     day = parse_date(on_date) if on_date else dt.date.today()
     events, invalid = read_json_lines(root / "events.jsonl")
-    states = latest_review_state(events)
+    due = _due_review_rows(events, day, limit)
+    return {"date": day.isoformat(), "due": due, "invalid_lines": invalid}
+
+
+def _due_review_rows(events, day, limit):
     due = []
-    for state in states.values():
+    for state in latest_review_state(events).values():
         if state["status"] == "stable" or not state.get("next_due"):
             continue
         if parse_date(state["next_due"]) <= day:
             due.append(state)
     due.sort(key=lambda item: (item["next_due"], item.get("module") or ""))
-    return {"date": day.isoformat(), "due": due[: max(0, limit)], "invalid_lines": invalid}
+    return due[: max(0, limit)]
 
 
 def phase_for(days_left):
@@ -510,10 +514,14 @@ def attempt_metrics(events, start, end):
 def weekly_report(root, end_date=None):
     profile = load_profile(root)
     end = parse_date(end_date) if end_date else dt.date.today()
+    events, invalid = read_json_lines(root / "events.jsonl")
+    return _weekly_report(profile, end, events, invalid)
+
+
+def _weekly_report(profile, end, events, invalid):
     start = end - dt.timedelta(days=6)
     previous_end = start - dt.timedelta(days=1)
     previous_start = previous_end - dt.timedelta(days=6)
-    events, invalid = read_json_lines(root / "events.jsonl")
     current = attempt_metrics(events, start, end)
     previous = attempt_metrics(events, previous_start, previous_end)
     weak = sorted(
@@ -549,8 +557,11 @@ def metric_delta(current, previous, key):
 
 def efficiency_report(root, end_date=None):
     """Evaluate the learning process without inventing a composite score."""
-    report = weekly_report(root, end_date=end_date)
-    info = status(root, today=end_date)
+    profile = load_profile(root)
+    day = parse_date(end_date) if end_date else dt.date.today()
+    events, invalid = read_json_lines(root / "events.jsonl")
+    report = _weekly_report(profile, day, events, invalid)
+    open_reviews = sum(state["status"] != "stable" for state in latest_review_state(events).values())
     current = report["current"]
     previous = report["previous"]
     attempts = current["attempts"]
@@ -599,8 +610,8 @@ def efficiency_report(root, end_date=None):
         },
         "review_loop": {
             "reviews_this_week": current["review_count"],
-            "open_reviews": info["open_review_count"],
-            "status": "open-loop" if info["open_review_count"] and not current["review_count"] else "active",
+            "open_reviews": open_reviews,
+            "status": "open-loop" if open_reviews and not current["review_count"] else "active",
         },
         "coverage": {
             "modules_with_evidence": module_count,
@@ -614,7 +625,7 @@ def efficiency_report(root, end_date=None):
     elif completion is not None and completion < 0.6:
         bottleneck = "execution"
         next_action = "下周缩小任务量并保留完成判据，先让计划完成率回到可持续区间"
-    elif info["open_review_count"] and not current["review_count"]:
+    elif open_reviews and not current["review_count"]:
         bottleneck = "review-loop"
         next_action = "先清理到期错题并记录回测结果，暂不扩张新题型"
     elif accuracy_delta is not None and accuracy_delta < -0.05:
@@ -639,6 +650,7 @@ def efficiency_report(root, end_date=None):
         },
         "bottleneck": bottleneck,
         "next_action": next_action,
+        **({"invalid_lines": invalid} if invalid else {}),
         "warning": "这是一份训练过程诊断，不是能力分数；样本条件变化时不要直接比较。",
     }
 
@@ -646,14 +658,11 @@ def efficiency_report(root, end_date=None):
 def status(root, today=None):
     profile = load_profile(root)
     day = parse_date(today) if today else dt.date.today()
-    exam_day = parse_date(profile["exam_date"])
-    days_left = (exam_day - day).days
+    info = _exam_progress(profile, day)
     events, invalid = read_json_lines(root / "events.jsonl")
     review_states = latest_review_state(events)
     return {
-        "profile": profile,
-        "days_left": days_left,
-        "phase": phase_for(days_left),
+        **info,
         "event_count": len(events),
         "open_review_count": sum(1 for value in review_states.values() if value["status"] != "stable"),
         "stable_review_count": sum(1 for value in review_states.values() if value["status"] == "stable"),
@@ -661,9 +670,15 @@ def status(root, today=None):
     }
 
 
+def _exam_progress(profile, day):
+    days_left = (parse_date(profile["exam_date"]) - day).days
+    return {"profile": profile, "days_left": days_left, "phase": phase_for(days_left)}
+
+
 def today_plan(root, today=None):
-    info = status(root, today=today)
+    profile = load_profile(root)
     day = parse_date(today) if today else dt.date.today()
+    info = _exam_progress(profile, day)
     if info["phase"] == "exam-passed":
         return {
             "date": day.isoformat(),
@@ -672,8 +687,9 @@ def today_plan(root, today=None):
             "blocks": [],
             "required_action": "考试日期已过，请运行 update-profile 更新档案后再生成训练计划",
         }
-    due = due_reviews(root, day.isoformat(), limit=20)["due"]
-    report = weekly_report(root, end_date=day.isoformat())
+    events, invalid = read_json_lines(root / "events.jsonl")
+    due = _due_review_rows(events, day, limit=20)
+    report = _weekly_report(profile, day, events, invalid)
     priority = report.get("priority_module") or "当前最弱模块"
     study_days = normalize_study_days(info["profile"].get("study_days_per_week", 6))
     life_mode = info["profile"].get("life_mode", "flexible")
@@ -716,6 +732,7 @@ def today_plan(root, today=None):
         "study_days_per_week": study_days,
         "life_mode": life_mode,
         "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
+        **({"invalid_lines": invalid} if invalid else {}),
         "daily_budget_minutes": sum(item["duration_minutes"] for item in blocks),
         "blocks": blocks,
     }
@@ -723,8 +740,9 @@ def today_plan(root, today=None):
 
 def minimum_day_plan(root, today=None, minutes=20):
     """Return a deliberately small plan for a low-energy or overloaded day."""
-    info = status(root, today=today)
+    profile = load_profile(root)
     day = parse_date(today) if today else dt.date.today()
+    info = _exam_progress(profile, day)
     try:
         budget = int(minutes)
     except (TypeError, ValueError):
@@ -739,8 +757,9 @@ def minimum_day_plan(root, today=None, minutes=20):
             "blocks": [],
             "required_action": "考试日期已过，请更新档案后再生成最低可行训练日",
         }
-    due = due_reviews(root, day.isoformat(), limit=3)["due"]
-    report = weekly_report(root, end_date=day.isoformat())
+    events, invalid = read_json_lines(root / "events.jsonl")
+    due = _due_review_rows(events, day, limit=3)
+    report = _weekly_report(profile, day, events, invalid)
     priority = report.get("priority_module") or "最熟悉的已学模块"
     life_mode = info["profile"].get("life_mode", "flexible")
     normalize_life_mode(life_mode)
@@ -754,6 +773,7 @@ def minimum_day_plan(root, today=None, minutes=20):
         "message": "今天不追欠账，只保住节奏；完成这一小轮就算有效训练。",
         "life_mode": life_mode,
         "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
+        **({"invalid_lines": invalid} if invalid else {}),
         "blocks": [
             {
                 "kind": "settle",
@@ -777,7 +797,9 @@ def minimum_day_plan(root, today=None, minutes=20):
 
 def week_plan(root, end_date=None):
     """Turn recent evidence into one focus, one maintenance lane, and one pause."""
-    info = status(root, today=end_date)
+    profile = load_profile(root)
+    day = parse_date(end_date) if end_date else dt.date.today()
+    info = _exam_progress(profile, day)
     if info["phase"] == "exam-passed":
         return {
             "phase": info["phase"],
@@ -786,7 +808,8 @@ def week_plan(root, end_date=None):
             "lanes": [],
             "required_action": "考试日期已过，请更新档案后再生成周计划",
         }
-    report = weekly_report(root, end_date=end_date)
+    events, invalid = read_json_lines(root / "events.jsonl")
+    report = _weekly_report(profile, day, events, invalid)
     life_mode = info["profile"].get("life_mode", "flexible")
     normalize_life_mode(life_mode)
     modules = sorted(
@@ -817,6 +840,7 @@ def week_plan(root, end_date=None):
         ],
         "pause": pause,
         "priority_reason": report["priority_reason"],
+        **({"invalid_lines": invalid} if invalid else {}),
     }
 
 
