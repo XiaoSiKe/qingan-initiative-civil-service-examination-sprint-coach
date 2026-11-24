@@ -29,3 +29,13 @@
 ## 模拟结束
 
 输出本轮最稳定的一点、唯一主修项、二答变化和下一题。不要一次给五套模板；让用户的表达保留个人经历和自然语言。
+
+## 面试记录与二答
+
+获准保存时用 `python3 "SKILL_ROOT/scripts/qingan.py" --data-dir DIR record-interview --json -` 读一个 UTF-8 JSON 对象。面试档案可独立使用，考试档案和计时均为可选。只保留初答或二答的短摘句，在反馈中说明哪句话满足了哪项观察判据。
+
+初答字段为 `question`、`criterion`、`evidence`、`feedback`、`result`、`modality`。结果取 `needs_revision`、`partial`、`met`，表示一项训练判据的达成情况。保存后告诉用户 `record.record_id`。二答用 `revises` 指向实际对应的记录 ID，题目与判据自动沿用，再提供新的证据和反馈。没有实测时间时省略 `duration_seconds`，别从字数反推表现。可选 `event_id` 用于重试识别。
+
+纯文字用 `modality: "transcript"`，只评内容与文字表达；音频用 `audio`，视频用 `video`。只有实际观察到的语速、停顿、语调、眼神或动作才可存进 `delivery`；键依次为 `pace`、`pause`、`tone`、`eye_contact`、`gesture`。文字不填写；音频不填写眼神和动作。素材和整份回答不入库。
+
+续接时用 `interview-history --record-id ID` 查询同一轮记录，沿原判据比较两段短证据。完成后照用户要求结束或继续，别自动给分、出题或追加一条训练。

@@ -6,9 +6,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "qingan-initiative-civil-service-examination-sprint-coach" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import qingan_core as core  # noqa: E402
@@ -79,8 +80,27 @@ class QinganCoreTests(unittest.TestCase):
         self.assertEqual(report["current"]["correct"], 14)
         self.assertEqual(report["current"]["by_module"]["资料分析"]["errors"], 6)
         self.assertEqual(report["current"]["accuracy"], 0.7)
+        self.assertEqual(report["current"]["error_types"], {"calculation": 1})
         self.assertEqual(report["current"]["completion_rate"], 0.5)
         self.assertEqual(report["priority_module"], "资料分析")
+
+    def test_weekly_keeps_both_date_windows_and_legacy_dates(self):
+        rows = [
+            {"study_date": "2030-9-1", "attempts": 2},
+            {"timestamp": "2030-09-07T10:00:00+00:00", "attempts": 3},
+            {"study_date": "2030-08-31", "attempts": 5},
+            {"study_date": "2030-08-25", "attempts": 7},
+            {"study_date": "2030-08-24", "attempts": 11},
+            {"study_date": "2030-09-08", "attempts": 13},
+            {"study_date": "20300901", "attempts": 17},
+        ]
+        rows = [dict(row, kind="study_session", module="资料分析") for row in rows]
+        log = self.root / "events.jsonl"
+        log.write_text("\n".join(json.dumps(row) for row in rows) + "\n{bad\n", encoding="utf-8")
+        result = core.weekly_report(self.root, end_date="2030-09-07")
+        self.assertEqual(result["current"]["attempts"], 5)
+        self.assertEqual(result["previous"]["attempts"], 12)
+        self.assertEqual(result["invalid_lines"][0]["line"], 8)
 
     def test_review_schedule_and_stability_gate(self):
         error = core.record_error(self.root, {
@@ -149,6 +169,21 @@ class QinganCoreTests(unittest.TestCase):
         self.assertEqual(sum(item["duration_minutes"] for item in result["blocks"]), 250)
         self.assertTrue(all(item["done_when"] for item in result["blocks"]))
 
+    def test_today_reads_one_event_snapshot_and_reports_bad_lines(self):
+        core.record_session(self.root, {
+            "timestamp": "2030-11-24T12:00:00+00:00",
+            "module": "资料分析", "duration_minutes": 30,
+            "attempts": 18, "correct_answers": 12, "comparison_key": "限时同组",
+        })
+        with (self.root / "events.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write("{\n")
+        with patch.object(core, "read_json_lines", wraps=core.read_json_lines) as read:
+            result = core.today_plan(self.root, today="2030-11-25", minutes=10)
+        read.assert_called_once_with(self.root / "events.jsonl")
+        self.assertEqual([entry["line"] for entry in result["invalid_lines"]], [2])
+        self.assertEqual(result["priority_module"], "资料分析")
+        self.assertEqual(result["daily_budget_minutes"], 10)
+
     def test_v01_profile_without_optional_life_constraints_still_works(self):
         profile_path = self.root / "profile.json"
         profile = json.loads(profile_path.read_text(encoding="utf-8"))
@@ -201,6 +236,7 @@ class QinganCoreTests(unittest.TestCase):
         core.record_session(self.root, {
             "timestamp": "2030-08-30T10:00:00+00:00",
             "module": "资料分析",
+            "comparison_key": "同难度真题-闭卷限时",
             "duration_minutes": 60,
             "planned_tasks": 2,
             "completed_tasks": 2,
@@ -210,6 +246,7 @@ class QinganCoreTests(unittest.TestCase):
         core.record_session(self.root, {
             "timestamp": "2030-09-02T10:00:00+00:00",
             "module": "资料分析",
+            "comparison_key": "同难度真题-闭卷限时",
             "duration_minutes": 60,
             "planned_tasks": 4,
             "completed_tasks": 2,
@@ -223,6 +260,110 @@ class QinganCoreTests(unittest.TestCase):
         self.assertEqual(result["dimensions"]["accuracy"]["status"], "declined")
         self.assertEqual(result["dimensions"]["time_efficiency"]["correct_per_hour"], 20.0)
         self.assertIn("缩小任务量", result["next_action"])
+
+    def test_mixed_training_does_not_claim_progress(self):
+        for stamp, key, count in (
+            ("2030-08-30T10:00:00+00:00", "真题-限时", 12),
+            ("2030-09-02T10:00:00+00:00", "基础题-不限时", 28),
+        ):
+            core.record_session(self.root, {
+                "timestamp": stamp, "module": "资料分析", "duration_minutes": 50,
+                "attempts": 30, "correct_answers": count, "comparison_key": key,
+            })
+        result = core.efficiency_report(self.root, end_date="2030-09-07")
+        self.assertEqual(result["trend"]["matched_groups"], [])
+        self.assertIsNone(result["trend"]["accuracy_delta"])
+        self.assertEqual(result["dimensions"]["accuracy"]["status"], "no-baseline")
+
+    def test_rate_review_reuses_validated_log_and_checks_for_changes(self):
+        question_id = core.record_error(self.root, {
+            "timestamp": "2030-09-01T08:00:00+00:00",
+            "module": "判断推理", "question": "待回测",
+        })["question_id"]
+        path = self.root / "events.jsonl"
+        with patch.object(core, "_parse_json_lines", wraps=core._parse_json_lines) as parse:
+            result = core.rate_review(self.root, question_id, "good", "2030-09-02T08:00:00+00:00")
+        self.assertEqual(parse.call_count, 1)
+        self.assertEqual(result["review_stage"], 1)
+
+        original = core._append_json_line
+        prior = path.read_bytes()
+        extra = b'{"kind":"concurrent_write"}\n'
+
+        def append_after_other_write(log, event, **kwargs):
+            log.write_bytes(prior + extra)
+            return original(log, event, **kwargs)
+
+        with patch.object(core, "_append_json_line", side_effect=append_after_other_write):
+            with self.assertRaisesRegex(core.QinganError, "新记录"):
+                core.rate_review(self.root, question_id, "good", "2030-09-05T08:00:00+00:00")
+        self.assertEqual(path.read_bytes(), prior + extra)
+
+    def test_same_day_review_and_failure_do_not_accelerate(self):
+        mistake = core.record_error(self.root, {
+            "module": "判断推理", "question": "重建判据", "timestamp": "2030-09-01T08:00:00+00:00",
+        })
+        question_id = mistake["question_id"]
+        first = core.rate_review(self.root, question_id, "good", "2030-09-02T01:00:00+08:00")
+        second = core.rate_review(self.root, question_id, "easy", "2030-09-02T20:00:00+08:00")
+        self.assertEqual(second["review_stage"], first["review_stage"])
+        self.assertEqual(second["next_due"], first["next_due"])
+        core.rate_review(self.root, question_id, "again", "2030-09-05T08:00:00+00:00")
+        remaining = core.rate_review(self.root, question_id, "easy", "2030-09-06T08:00:00+00:00")
+        self.assertEqual(remaining["status"], "retesting")
+
+    def test_tiny_day_does_not_schedule_more_reviews_than_fit(self):
+        for index in range(4):
+            core.record_error(self.root, {
+                "module": "资料分析", "question": str(index), "timestamp": "2030-09-01T08:00:00+00:00",
+            })
+        tiny = core.today_plan(self.root, today="2030-09-02", minutes=1)
+        self.assertEqual(tiny["daily_budget_minutes"], 1)
+        self.assertEqual(len(tiny["blocks"]), 1)
+        self.assertEqual(len(tiny["blocks"][0]["question_ids"]), 1)
+        self.assertEqual(core.today_plan(self.root, today="2030-09-02", minutes=0)["blocks"], [])
+        self.assertEqual(len(core.due_reviews(self.root, "2030-09-02")["due"]), 4)
+
+    def test_week_focus_corrects_volume_bias_and_carries_the_first_error(self):
+        for module, attempts, correct, minutes in (
+            ("资料分析", 80, 68, 96),
+            ("判断推理", 20, 11, 40),
+            ("数量关系", 3, 0, 9),
+        ):
+            core.record_session(self.root, {
+                "module": module, "timestamp": "2030-09-03T20:00:00+08:00",
+                "duration_minutes": minutes, "attempts": attempts, "correct_answers": correct,
+                "comparison_key": "常规难度真题-闭卷限时",
+            })
+        for question in ("同一错题", "同一错题"):
+            core.record_error(self.root, {
+                "module": "判断推理", "question": question, "subtype": "因果削弱",
+                "error_type": "reasoning", "diagnosis": "用常识替代题内证据",
+                "correction": "写一句证明替代原因实际发生的原文",
+                "timestamp": "2030-09-07T20:00:00+08:00",
+            })
+        report = core.weekly_report(self.root, "2030-09-07")
+        evidence = report["priority_evidence"]
+        self.assertEqual(evidence["module"], "判断推理")
+        self.assertEqual((evidence["miss_rate"], evidence["correct_per_hour"]), (0.45, 16.5))
+        self.assertEqual(evidence["first_error"]["distinct_questions"], 1)
+        self.assertEqual(core.week_plan(self.root, "2030-09-07")["lanes"][0]["module"], "判断推理")
+        plan = core.today_plan(self.root, "2030-09-07", 6)
+        self.assertEqual(len(plan["blocks"]), 1)
+        self.assertEqual(plan["blocks"][0]["duration_minutes"], 6)
+        self.assertIn("因果削弱", plan["blocks"][0]["task"])
+        self.assertEqual(plan["blocks"][0]["done_when"], "写一句证明替代原因实际发生的原文")
+
+    def test_small_sample_starts_diagnostic_instead_of_recommending_a_weakness(self):
+        core.record_session(self.root, {
+            "module": "言语理解", "timestamp": "2030-09-03T20:00:00+08:00",
+            "duration_minutes": 10, "attempts": 3, "correct_answers": 0,
+            "comparison_key": "闭卷限时",
+        })
+        report = core.weekly_report(self.root, "2030-09-07")
+        self.assertIsNone(report["priority_module"])
+        self.assertEqual(report["diagnostic_module"], "言语理解")
+        self.assertEqual(core.today_plan(self.root, "2030-09-07", 6)["blocks"][0]["kind"], "diagnostic")
 
     def test_passed_exam_does_not_generate_training_blocks(self):
         result = core.today_plan(self.root, today="2030-12-01")

@@ -6,7 +6,9 @@ from __future__ import print_function
 import csv
 import datetime as dt
 import hashlib
+import io
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -17,6 +19,7 @@ from pathlib import Path
 
 SCHEMA_VERSION = 1
 REVIEW_INTERVALS = (1, 3, 7, 14, 30)
+MIN_PRIORITY_ATTEMPTS = 15
 VALID_EXAM_TYPES = {"national", "province", "institution"}
 VALID_LIFE_MODES = {"campus", "working", "full-time", "caregiving", "flexible"}
 LIFE_MODE_GUIDANCE = {
@@ -44,6 +47,11 @@ class QinganError(Exception):
 
 
 def parse_date(value):
+    if isinstance(value, str) and len(value) == 10 and value[4] == value[7] == "-":
+        try:
+            return dt.date.fromisoformat(value)
+        except ValueError:
+            pass
     try:
         return dt.datetime.strptime(value, "%Y-%m-%d").date()
     except (TypeError, ValueError):
@@ -69,19 +77,23 @@ def ensure_layout(root):
         (root / name).mkdir(exist_ok=True)
 
 
-def atomic_json_write(path, value):
+def atomic_write_bytes(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(prefix=path.name + ".", dir=str(path.parent))
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
-            handle.write("\n")
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(tmp_name, str(path))
     finally:
         if os.path.exists(tmp_name):
             os.unlink(tmp_name)
+
+
+def atomic_json_write(path, value):
+    rendered = json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True)
+    atomic_write_bytes(path, (rendered + "\n").encode("utf-8"))
 
 
 def load_profile(root):
@@ -190,31 +202,59 @@ def update_profile(
     return {"profile": updated, "backup": str(backup)}
 
 
-def read_json_lines(path):
+def _parse_json_lines(data, *, retain_records=True, question_id=None):
     records = []
     invalid = []
-    if not path.exists():
-        return records, invalid
-    with path.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, 1):
-            if not line.strip():
-                continue
-            try:
-                value = json.loads(line)
-                if not isinstance(value, dict):
-                    raise ValueError("JSON value is not an object")
+    for line_number, raw in enumerate(io.BytesIO(data), 1):
+        line = raw.removesuffix(b"\n")
+        if not line.strip():
+            continue
+        try:
+            # Generated rows are UTF-8 objects. Let the JSON decoder handle older
+            # encodings and BOM-prefixed rows as it did before.
+            payload = (
+                line.decode("utf-8") if line.startswith(b"{") and b"\x00" not in line[:4] else line
+            )
+            value = json.loads(payload)
+            if not isinstance(value, dict):
+                raise ValueError("JSON value is not an object")
+            if retain_records and (question_id is None or value.get("question_id") == question_id):
                 records.append(value)
-            except (json.JSONDecodeError, ValueError) as exc:
-                invalid.append({"line": line_number, "error": str(exc)})
+        except (UnicodeDecodeError, ValueError) as exc:
+            invalid.append({"line": line_number, "error": str(exc)})
+            if not retain_records:
+                break
     return records, invalid
 
 
+def read_json_lines(path):
+    if not path.exists():
+        return [], []
+    return _parse_json_lines(path.read_bytes())
+
+
 def append_json_line(path, value):
+    _append_json_line(path, value)
+
+
+def _append_json_line(path, value, *, validated_snapshot=None):
     path.parent.mkdir(parents=True, exist_ok=True)
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(encoded + "\n")
-        handle.flush()
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    with path.open("a+b", buffering=0) as handle:
+        handle.seek(0)
+        existing = handle.read()
+        if validated_snapshot is not None:
+            if existing != validated_snapshot:
+                raise QinganError("日志刚有新记录，请重试本次回测。")
+        else:
+            _, invalid = _parse_json_lines(existing, retain_records=False)
+            if invalid:
+                suffix = "；如为粘连的完整事件，可用 recover-events 修复" if path.name == "events.jsonl" else ""
+                raise QinganError("%s 有损坏行，已暂停写入%s" % (path.name, suffix))
+        separator = b"\n" if existing and not existing.endswith(b"\n") else b""
+        row = separator + encoded + b"\n"
+        if handle.write(row) != len(row):
+            raise QinganError("%s 发生不完整写入，请保留文件并检查日志" % path.name)
         os.fsync(handle.fileno())
 
 
@@ -224,16 +264,17 @@ def normalize_module(value):
     return value.strip()
 
 
-def normalize_timestamp(value=None):
+def timestamp_and_study_date(value=None):
     if value is None:
-        return utc_now()
+        now = dt.datetime.now().astimezone()
+        return now.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat(), now.date()
     try:
         parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         raise QinganError("timestamp 必须是 ISO-8601 时间")
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=dt.timezone.utc)
-    return parsed.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat()
+    return parsed.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat(), parsed.date()
 
 
 def question_fingerprint(payload):
@@ -263,7 +304,7 @@ def store_attachment(root, source_path, question_id):
 def record_session(root, payload):
     load_profile(root)
     minutes = payload.get("duration_minutes")
-    if not isinstance(minutes, (int, float)) or minutes < 0 or minutes > 1440:
+    if isinstance(minutes, bool) or not isinstance(minutes, (int, float)) or not 0 <= minutes <= 1440:
         raise QinganError("duration_minutes 必须是 0 到 1440 的数字")
     try:
         attempts = int(payload.get("attempts", 0))
@@ -274,21 +315,30 @@ def record_session(root, payload):
         raise QinganError("任务数、作答数和正确数必须是整数")
     if attempts < 0 or correct_answers < 0 or correct_answers > attempts:
         raise QinganError("attempts 与 correct_answers 必须满足 0 <= 正确数 <= 作答数")
+    comparison_key = payload.get("comparison_key")
+    if comparison_key is not None and (
+        not isinstance(comparison_key, str) or not 0 < len(comparison_key.strip()) <= 120
+        or not minutes or not attempts
+    ):
+        raise QinganError("comparison_key 需要非空口径名（最多 120 字符）、作答题量和实际计时")
+    timestamp, event_date = timestamp_and_study_date(payload.get("timestamp"))
     event = {
         "schema_version": SCHEMA_VERSION,
         "event_id": str(uuid.uuid4()),
         "kind": "study_session",
-        "timestamp": normalize_timestamp(payload.get("timestamp")),
+        "timestamp": timestamp,
+        "study_date": event_date.isoformat(),
         "module": normalize_module(payload.get("module")),
         "duration_minutes": float(minutes),
+        "comparison_key": comparison_key.strip() if comparison_key else None,
         "planned_tasks": planned_tasks,
         "completed_tasks": completed_tasks,
         "attempts": attempts,
         "correct_answers": correct_answers,
         "note": str(payload.get("note", ""))[:1000],
     }
-    if event["planned_tasks"] < 0 or event["completed_tasks"] < 0:
-        raise QinganError("任务数量不能为负数")
+    if not 0 <= completed_tasks <= planned_tasks:
+        raise QinganError("任务数量必须满足 0 <= 完成数 <= 计划数")
     append_json_line(root / "events.jsonl", event)
     return event
 
@@ -302,17 +352,18 @@ def record_error(root, payload):
     if confidence not in {"high", "medium", "low"}:
         raise QinganError("confidence 必须是 high、medium 或 low")
     question_id = question_fingerprint(payload)
-    timestamp = normalize_timestamp(payload.get("timestamp"))
-    event_date = dt.datetime.fromisoformat(timestamp).date()
+    timestamp, event_date = timestamp_and_study_date(payload.get("timestamp"))
     session_id = payload.get("session_id")
     if session_id:
         existing, _ = read_json_lines(root / "events.jsonl")
-        valid_session = any(
-            item.get("kind") == "study_session" and item.get("event_id") == session_id
-            for item in existing
-        )
-        if not valid_session:
+        linked_session = next((
+            item for item in existing
+            if item.get("kind") == "study_session" and item.get("event_id") == session_id
+        ), None)
+        if linked_session is None:
             raise QinganError("session_id 未指向已有学习会话")
+        if normalize_module(payload.get("module")) != linked_session.get("module"):
+            raise QinganError("错题模块必须与关联学习会话一致；跨模块错题请单独记录")
     tags = payload.get("tags", [])
     if not isinstance(tags, list):
         raise QinganError("tags 必须是数组")
@@ -321,6 +372,7 @@ def record_error(root, payload):
         "event_id": str(uuid.uuid4()),
         "kind": "question_attempt",
         "timestamp": timestamp,
+        "study_date": event_date.isoformat(),
         "question_id": question_id,
         "module": normalize_module(payload.get("module")),
         "subtype": str(payload.get("subtype", "unknown"))[:100],
@@ -341,13 +393,17 @@ def record_error(root, payload):
         "next_due": (event_date + dt.timedelta(days=REVIEW_INTERVALS[0])).isoformat(),
     }
     duration = event["duration_seconds"]
-    if duration is not None and (not isinstance(duration, (int, float)) or duration < 0):
+    if duration is not None and (not isinstance(duration, (int, float)) or not math.isfinite(duration) or duration < 0):
         raise QinganError("duration_seconds 必须是非负数字")
     attachment = payload.get("attachment_path")
     if attachment:
         event["attachment_path"] = store_attachment(root, attachment, question_id)
     append_json_line(root / "events.jsonl", event)
     return event
+
+
+def event_study_date(event):
+    return event.get("study_date") or event.get("timestamp", "")[:10]
 
 
 def latest_review_state(events):
@@ -371,8 +427,12 @@ def latest_review_state(events):
             state = states[question_id]
             state["stage"] = int(event.get("review_stage", state["stage"]))
             state["next_due"] = event.get("next_due")
-            if event.get("rating") in {"good", "easy"}:
-                state["successful_dates"].append(event["timestamp"][:10])
+            if event.get("rating") == "again":
+                state["successful_dates"] = []
+            elif event.get("rating") in {"good", "easy"}:
+                success_day = event_study_date(event)
+                if success_day not in state["successful_dates"]:
+                    state["successful_dates"].append(success_day)
             state["status"] = event.get("status", state["status"])
     return states
 
@@ -381,23 +441,29 @@ def rate_review(root, question_id, rating, when=None):
     load_profile(root)
     if rating not in VALID_RATINGS:
         raise QinganError("rating 必须是 again、hard、good 或 easy")
-    events, _ = read_json_lines(root / "events.jsonl")
+    path = root / "events.jsonl"
+    try:
+        snapshot = path.read_bytes()
+    except FileNotFoundError:
+        snapshot = b""
+    events, invalid = _parse_json_lines(snapshot, question_id=question_id)
     states = latest_review_state(events)
     if question_id not in states:
         raise QinganError("找不到该 question_id")
     state = states[question_id]
     current = int(state["stage"])
+    timestamp, event_date = timestamp_and_study_date(when)
+    successful_dates = set(state["successful_dates"])
+    same_day_success = rating in {"good", "easy"} and event_date.isoformat() in successful_dates
     if rating == "again":
         stage = 0
-    elif rating == "hard":
+        successful_dates.clear()
+    elif rating == "hard" or same_day_success:
         stage = current
     elif rating == "good":
         stage = min(current + 1, len(REVIEW_INTERVALS) - 1)
     else:
         stage = min(current + 2, len(REVIEW_INTERVALS) - 1)
-    timestamp = normalize_timestamp(when)
-    event_date = dt.datetime.fromisoformat(timestamp).date()
-    successful_dates = set(state["successful_dates"])
     if rating in {"good", "easy"}:
         successful_dates.add(event_date.isoformat())
     status = "stable" if len(successful_dates) >= 2 and stage >= 2 else "retesting"
@@ -406,14 +472,18 @@ def rate_review(root, question_id, rating, when=None):
         "event_id": str(uuid.uuid4()),
         "kind": "review_result",
         "timestamp": timestamp,
+        "study_date": event_date.isoformat(),
         "question_id": question_id,
         "module": state.get("module"),
         "rating": rating,
         "review_stage": stage,
         "status": status,
-        "next_due": (event_date + dt.timedelta(days=REVIEW_INTERVALS[stage])).isoformat(),
+        "next_due": (
+            state["next_due"] if same_day_success
+            else (event_date + dt.timedelta(days=REVIEW_INTERVALS[stage])).isoformat()
+        ),
     }
-    append_json_line(root / "events.jsonl", event)
+    _append_json_line(path, event, validated_snapshot=snapshot if not invalid else None)
     return event
 
 
@@ -448,35 +518,38 @@ def phase_for(days_left):
     return "foundation-and-targeting"
 
 
-def attempt_metrics(events, start, end):
+def _attempt_metrics(events):
     attempts = []
     sessions = []
     reviews = []
     for event in events:
-        stamp = event.get("timestamp", "")[:10]
-        try:
-            day = parse_date(stamp)
-        except QinganError:
-            continue
-        if start <= day <= end:
-            if event.get("kind") == "question_attempt":
-                attempts.append(event)
-            elif event.get("kind") == "study_session":
-                sessions.append(event)
-            elif event.get("kind") == "review_result":
-                reviews.append(event)
+        kind = event.get("kind")
+        if kind == "question_attempt":
+            attempts.append(event)
+        elif kind == "study_session":
+            sessions.append(event)
+        elif kind == "review_result":
+            reviews.append(event)
     by_module = defaultdict(lambda: {"attempts": 0, "correct": 0, "errors": 0})
     error_types = Counter()
+    patterns = defaultdict(dict)
     for event in attempts:
+        module = event.get("module") or "unknown"
+        if event.get("correct") is False:
+            error_type = event.get("error_type", "unknown")
+            error_types[error_type] += 1
+            key = (event.get("subtype") or "unknown", error_type)
+            if event.get("question_id") and error_type != "unknown":
+                patterns[(module, key)][event["question_id"]] = event
         if event.get("session_id"):
             continue
-        module = event.get("module") or "unknown"
         by_module[module]["attempts"] += 1
         if event.get("correct") is True:
             by_module[module]["correct"] += 1
         else:
             by_module[module]["errors"] += 1
-            error_types[event.get("error_type", "unknown")] += 1
+    groups = defaultdict(lambda: {"attempts": 0, "correct": 0, "minutes": 0.0})
+    session_correct_total = 0
     for event in sessions:
         module = event.get("module") or "unknown"
         session_attempts = int(event.get("attempts", 0))
@@ -484,6 +557,13 @@ def attempt_metrics(events, start, end):
         by_module[module]["attempts"] += session_attempts
         by_module[module]["correct"] += session_correct
         by_module[module]["errors"] += session_attempts - session_correct
+        session_correct_total += session_correct
+        key = event.get("comparison_key")
+        if key and session_attempts and event.get("duration_minutes", 0) > 0:
+            group = groups[(module, key)]
+            group["attempts"] += session_attempts
+            group["correct"] += session_correct
+            group["minutes"] += float(event["duration_minutes"])
     planned = sum(int(item.get("planned_tasks", 0)) for item in sessions)
     completed = sum(int(item.get("completed_tasks", 0)) for item in sessions)
     normalized_modules = {}
@@ -495,6 +575,16 @@ def attempt_metrics(events, start, end):
             else None
         )
         normalized_modules[module] = normalized
+    by_module_patterns = defaultdict(list)
+    for (module, (subtype, error_type)), questions in patterns.items():
+        latest = max(questions.values(), key=lambda row: row.get("timestamp", ""))
+        by_module_patterns[module].append({
+            "subtype": subtype, "error_type": error_type, "distinct_questions": len(questions),
+            "latest_at": latest.get("timestamp"),
+            "diagnosis": latest.get("diagnosis"), "correction": latest.get("correction"),
+        })
+    for items in by_module_patterns.values():
+        items.sort(key=lambda item: (item["distinct_questions"], item["latest_at"] or ""), reverse=True)
     total_attempts = sum(value["attempts"] for value in by_module.values())
     total_correct = sum(value["correct"] for value in by_module.values())
     return {
@@ -505,10 +595,76 @@ def attempt_metrics(events, start, end):
         "planned_tasks": planned,
         "completed_tasks": completed,
         "completion_rate": round(float(completed) / planned, 4) if planned else None,
-        "review_count": len(reviews),
+        "review_count": len({(row.get("question_id"), event_study_date(row)) for row in reviews}),
         "by_module": normalized_modules,
         "error_types": dict(error_types),
+        "error_patterns": dict(by_module_patterns),
+        "session_correct": session_correct_total,
+        "comparison_groups": [
+            dict(totals, module=module, comparison_key=key)
+            for (module, key), totals in sorted(groups.items())
+        ],
     }
+
+
+def _priority_for_week(current, previous):
+    """Choose a weak module using rates from a sufficiently sized training sample."""
+    cohort_by_module = {}
+    previous_cohorts = {
+        (row["module"], row["comparison_key"]): row
+        for row in previous["comparison_groups"] if row["attempts"] >= MIN_PRIORITY_ATTEMPTS
+    }
+    for row in current["comparison_groups"]:
+        present = cohort_by_module.get(row["module"])
+        if row["attempts"] >= MIN_PRIORITY_ATTEMPTS and (not present or row["attempts"] > present["attempts"]):
+            cohort_by_module[row["module"]] = row
+
+    candidates = []
+    for module, stats in current["by_module"].items():
+        cohort = cohort_by_module.get(module)
+        sample = cohort or stats
+        attempts = sample["attempts"]
+        correct = sample["correct"]
+        if not attempts or correct == attempts:
+            continue
+        patterns = current["error_patterns"].get(module, [])
+        pattern = patterns[0] if patterns else None
+        key = cohort["comparison_key"] if cohort else None
+        rate = correct * 60 / cohort["minutes"] if cohort else None
+        prior = previous_cohorts.get((module, key))
+        prior_rate = prior["correct"] * 60 / prior["minutes"] if prior else None
+        speed_change = (rate - prior_rate) / prior_rate if prior_rate else None
+        candidates.append({
+            "module": module,
+            "basis": "timed-cohort" if cohort else "unmatched-observation",
+            "comparison_key": key,
+            "attempts": attempts,
+            "correct": correct,
+            "miss_rate": round(1 - correct / attempts, 4),
+            "correct_per_hour": round(rate, 2) if rate is not None else None,
+            "relative_speed_change": round(speed_change, 4) if speed_change is not None else None,
+            "first_error": pattern,
+        })
+
+    supported = [item for item in candidates if item["attempts"] >= MIN_PRIORITY_ATTEMPTS]
+    timed = [item for item in supported if item["basis"] == "timed-cohort"]
+
+    def rank(item):
+        pattern = item["first_error"]
+        recurrence = max(0, (pattern["distinct_questions"] if pattern else 0) - 1)
+        decline = min(0.0, item["relative_speed_change"] or 0.0)
+        return (-item["miss_rate"], -recurrence, decline, -item["attempts"], item["module"])
+
+    strongest = sorted(timed or supported, key=rank)
+    diagnostic = min(candidates, key=rank)["module"] if candidates and not strongest else None
+    if not strongest:
+        return None, diagnostic, "现有样本未能确认弱项，先用一次短测建立基线。"
+    priority = strongest[0]
+    source = ("同口径限时组" if priority["basis"] == "timed-cohort" else "近期练习观察，口径尚未核齐")
+    return priority, None, (
+        "%s：%d/%d 道正确，错率 %.0f%%。用重复错因和同类计时变化校准。"
+        % (source, priority["correct"], priority["attempts"], priority["miss_rate"] * 100)
+    )
 
 
 def weekly_report(root, end_date=None):
@@ -522,27 +678,29 @@ def _weekly_report(profile, end, events, invalid):
     start = end - dt.timedelta(days=6)
     previous_end = start - dt.timedelta(days=1)
     previous_start = previous_end - dt.timedelta(days=6)
-    current = attempt_metrics(events, start, end)
-    previous = attempt_metrics(events, previous_start, previous_end)
-    weak = sorted(
-        current["by_module"].items(),
-        key=lambda item: (
-            -item[1]["errors"],
-            item[1]["accuracy"] if item[1]["accuracy"] is not None else 1.0,
-            -item[1]["attempts"],
-            item[0],
-        ),
-    )
-    priority = weak[0][0] if weak and weak[0][1]["errors"] else None
+    current_events = []
+    previous_events = []
+    for event in events:
+        try:
+            day = parse_date(event_study_date(event))
+        except QinganError:
+            continue
+        if start <= day <= end:
+            current_events.append(event)
+        elif previous_start <= day <= previous_end:
+            previous_events.append(event)
+    current = _attempt_metrics(current_events)
+    previous = _attempt_metrics(previous_events)
+    priority, diagnostic_module, priority_reason = _priority_for_week(current, previous)
     return {
         "period": {"start": start.isoformat(), "end": end.isoformat()},
         "exam_date": profile["exam_date"],
         "current": current,
         "previous": previous,
-        "priority_module": priority,
-        "priority_reason": (
-            "本周错误数优先；并列时比较正确率与样本量" if priority else "尚无足够错题数据，先建立基线"
-        ),
+        "priority_module": priority["module"] if priority else None,
+        "priority_reason": priority_reason,
+        "priority_evidence": priority,
+        "diagnostic_module": diagnostic_module,
         "invalid_lines": invalid,
     }
 
@@ -561,7 +719,9 @@ def efficiency_report(root, end_date=None):
     day = parse_date(end_date) if end_date else dt.date.today()
     events, invalid = read_json_lines(root / "events.jsonl")
     report = _weekly_report(profile, day, events, invalid)
-    open_reviews = sum(state["status"] != "stable" for state in latest_review_state(events).values())
+    open_reviews = sum(
+        state["status"] != "stable" for state in latest_review_state(events).values()
+    )
     current = report["current"]
     previous = report["previous"]
     attempts = current["attempts"]
@@ -570,17 +730,36 @@ def efficiency_report(root, end_date=None):
     accuracy = current["accuracy"]
     module_count = len(current["by_module"])
     correct_per_hour = (
-        round(current["correct"] / (minutes / 60.0), 2)
-        if minutes and module_count == 1
-        else None
+        round(current["session_correct"] / (minutes / 60.0), 2)
+        if minutes and module_count == 1 else None
     )
-    accuracy_delta = metric_delta(current, previous, "accuracy")
+    prior_groups = {
+        (item["module"], item["comparison_key"]): item
+        for item in previous["comparison_groups"] if item["attempts"] >= 20
+    }
+    comparisons = []
+    for item in current["comparison_groups"]:
+        prior = prior_groups.get((item["module"], item["comparison_key"]))
+        if not prior or item["attempts"] < 20:
+            continue
+        delta = item["correct"] / item["attempts"] - prior["correct"] / prior["attempts"]
+        speed_change = item["correct"] / item["minutes"] - prior["correct"] / prior["minutes"]
+        comparisons.append({
+            "module": item["module"],
+            "comparison_key": item["comparison_key"],
+            "current_attempts": item["attempts"],
+            "previous_attempts": prior["attempts"],
+            "accuracy_delta": round(delta, 4),
+            "correct_per_hour_delta": round(speed_change * 60, 2),
+        })
+    accuracy_delta = comparisons[0]["accuracy_delta"] if len(comparisons) == 1 else None
+    declining = min(comparisons, key=lambda item: item["accuracy_delta"], default=None)
 
     evidence_checks = {
         "enough_current_attempts": attempts >= 30,
         "has_study_time": minutes > 0,
         "has_task_completion_data": current["planned_tasks"] > 0,
-        "has_previous_baseline": previous["attempts"] >= 20,
+        "has_previous_baseline": bool(comparisons),
     }
     evidence_count = sum(1 for value in evidence_checks.values() if value)
     confidence = "high" if evidence_count == 4 else "medium" if evidence_count >= 2 else "low"
@@ -595,6 +774,8 @@ def efficiency_report(root, end_date=None):
             "status": (
                 "no-data"
                 if accuracy is None
+                else "multiple-comparisons"
+                if len(comparisons) > 1
                 else "no-baseline"
                 if accuracy_delta is None
                 else "declined"
@@ -606,7 +787,7 @@ def efficiency_report(root, end_date=None):
         },
         "time_efficiency": {
             "correct_per_hour": correct_per_hour,
-            "note": "只在本周只有一个模块时返回；用于同类训练纵向比较，不跨模块排名",
+            "note": "使用同一模块的已计入会话汇总；跨周纵向变化见同口径对照。",
         },
         "review_loop": {
             "reviews_this_week": current["review_count"],
@@ -628,9 +809,11 @@ def efficiency_report(root, end_date=None):
     elif open_reviews and not current["review_count"]:
         bottleneck = "review-loop"
         next_action = "先清理到期错题并记录回测结果，暂不扩张新题型"
-    elif accuracy_delta is not None and accuracy_delta < -0.05:
+    elif declining is not None and declining["accuracy_delta"] < -0.05:
         bottleneck = "method"
-        next_action = "正确率在可比周期中下降；选择错误最多的一个题型，回到识别信号和固定步骤后做近变式"
+        next_action = "先检查 %s（%s）中错误最多的题型，再做同口径近变式。" % (
+            declining["module"], declining["comparison_key"],
+        )
     elif module_count < 2:
         bottleneck = "coverage"
         next_action = "补一个非主攻模块的小样本，避免用单一模块代表整体状态"
@@ -645,10 +828,14 @@ def efficiency_report(root, end_date=None):
         "dimensions": dimensions,
         "trend": {
             "accuracy_delta": accuracy_delta,
+            "matched_groups": comparisons,
             "completion_rate_delta": metric_delta(current, previous, "completion_rate"),
             "study_minutes_delta": metric_delta(current, previous, "study_minutes"),
         },
         "bottleneck": bottleneck,
+        "priority_module": report["priority_module"],
+        "priority_evidence": report["priority_evidence"],
+        "diagnostic_module": report["diagnostic_module"],
         "next_action": next_action,
         **({"invalid_lines": invalid} if invalid else {}),
         "warning": "这是一份训练过程诊断，不是能力分数；样本条件变化时不要直接比较。",
@@ -675,7 +862,7 @@ def _exam_progress(profile, day):
     return {"profile": profile, "days_left": days_left, "phase": phase_for(days_left)}
 
 
-def today_plan(root, today=None):
+def today_plan(root, today=None, minutes=None):
     profile = load_profile(root)
     day = parse_date(today) if today else dt.date.today()
     info = _exam_progress(profile, day)
@@ -687,29 +874,66 @@ def today_plan(root, today=None):
             "blocks": [],
             "required_action": "考试日期已过，请运行 update-profile 更新档案后再生成训练计划",
         }
+    if minutes is not None and not 0 <= minutes <= 1440:
+        raise QinganError("minutes 必须在 0 到 1440 之间")
+    if minutes == 0:
+        return {
+            "date": day.isoformat(), "phase": info["phase"], "days_left": info["days_left"],
+            "daily_budget_minutes": 0, "blocks": [], "required_action": "今天休息，保留到期回测。",
+        }
     events, invalid = read_json_lines(root / "events.jsonl")
     due = _due_review_rows(events, day, limit=20)
     report = _weekly_report(profile, day, events, invalid)
-    priority = report.get("priority_module") or "当前最弱模块"
+    priority = report["priority_module"] or report["diagnostic_module"] or "一个待校准的模块"
+    evidence = report["priority_evidence"]
+    first_error = evidence.get("first_error") if evidence else None
+    subtype = first_error.get("subtype") if first_error else None
+    focus_label = "%s（%s）" % (priority, subtype) if subtype and subtype != "unknown" else priority
+    verification = (
+        first_error.get("correction") if first_error and first_error.get("correction")
+        else "独立作答，记下首个错误环节和用时"
+    )
+    weakness_kind = "weakness" if evidence else "diagnostic"
     study_days = normalize_study_days(info["profile"].get("study_days_per_week", 6))
     life_mode = info["profile"].get("life_mode", "flexible")
     normalize_life_mode(life_mode)
     daily_budget = max(3, int(round(float(info["profile"]["hours_per_week"]) * 60 / study_days)))
+    if minutes is not None:
+        daily_budget = minutes
+    if minutes is not None and daily_budget <= 10 and not due:
+        return {
+            "date": day.isoformat(), "phase": info["phase"], "days_left": info["days_left"],
+            "study_days_per_week": study_days, "life_mode": life_mode,
+            "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
+            "daily_budget_minutes": daily_budget, "priority_module": report["priority_module"],
+            "priority_evidence": evidence,
+            **({"invalid_lines": invalid} if invalid else {}),
+            "blocks": [{
+                "kind": weakness_kind,
+                "duration_minutes": daily_budget,
+                "task": "做一道 %s 小题，时间到即停" % focus_label,
+                "done_when": verification,
+            }],
+        }
     review_minutes = min(max(1, len(due) * 5), max(1, daily_budget // 4))
-    weakness_minutes = max(1, int(round((daily_budget - review_minutes) * 0.6)))
-    transfer_minutes = daily_budget - review_minutes - weakness_minutes
+    remainder = daily_budget - review_minutes
+    weakness_minutes = max(1, int(round(remainder * 0.6))) if remainder else 0
+    transfer_minutes = remainder - weakness_minutes
+    review_count = min(len(due), max(1, review_minutes // 5))
     blocks = [
         {
             "kind": "due-review",
             "duration_minutes": review_minutes,
-            "task": "完成 %d 道到期错题回测" % len(due),
+            "task": "回测至多 %d 道到期错题，时间到就停" % review_count
+            if review_count else "闭卷口述一个已学方法",
+            "question_ids": [item["question_id"] for item in due[:review_count]],
             "done_when": "逐题给出回测评级；无到期题时完成方法主动回忆",
         },
         {
-            "kind": "weakness",
+            "kind": weakness_kind,
             "duration_minutes": weakness_minutes,
-            "task": "训练 %s，并记录第一个错误环节" % priority,
-            "done_when": "达到预设时间上限并留下可回测的最小修正",
+            "task": "训练 %s，并记录第一个错误环节" % focus_label,
+            "done_when": verification,
         },
         {
             "kind": "timed-mix",
@@ -732,9 +956,11 @@ def today_plan(root, today=None):
         "study_days_per_week": study_days,
         "life_mode": life_mode,
         "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
-        **({"invalid_lines": invalid} if invalid else {}),
         "daily_budget_minutes": sum(item["duration_minutes"] for item in blocks),
-        "blocks": blocks,
+        "priority_module": report["priority_module"],
+        "priority_evidence": evidence,
+        **({"invalid_lines": invalid} if invalid else {}),
+        "blocks": [block for block in blocks if block["duration_minutes"] > 0],
     }
 
 
@@ -766,6 +992,7 @@ def minimum_day_plan(root, today=None, minutes=20):
     settle_minutes = min(3, max(1, budget // 8))
     recall_minutes = min(max(1, len(due) * 3), max(1, (budget - settle_minutes) // 3))
     action_minutes = budget - settle_minutes - recall_minutes
+    review_count = min(len(due), max(1, recall_minutes // 3))
     return {
         "date": day.isoformat(),
         "phase": info["phase"],
@@ -783,7 +1010,9 @@ def minimum_day_plan(root, today=None, minutes=20):
             {
                 "kind": "gentle-recall",
                 "duration_minutes": recall_minutes,
-                "task": "回测 %d 道到期错题；无到期题时口述一个已学方法" % len(due),
+                "task": "回测至多 %d 道到期错题，时间到就停" % review_count
+            if review_count else "闭卷口述一个已学方法",
+            "question_ids": [item["question_id"] for item in due[:review_count]],
             },
             {
                 "kind": "small-win",
@@ -816,7 +1045,7 @@ def week_plan(root, end_date=None):
         report["current"]["by_module"].items(),
         key=lambda item: (-item[1]["attempts"], item[0]),
     )
-    focus = report["priority_module"] or "综合基线诊断"
+    focus = report["priority_module"] or report["diagnostic_module"] or "综合基线诊断"
     maintenance = next((name for name, _ in modules if name != focus), "已学稳定模块")
     budget = max(3, int(round(float(info["profile"]["hours_per_week"]) * 60)))
     focus_minutes = max(1, int(round(budget * 0.55)))
@@ -832,7 +1061,9 @@ def week_plan(root, end_date=None):
         "weekly_budget_minutes": budget,
         "life_mode": life_mode,
         "schedule_guidance": LIFE_MODE_GUIDANCE[life_mode],
-        "evidence": "recent-training-data" if report["current"]["attempts"] else "temporary-baseline",
+        "evidence": "recent-training-data" if report["priority_module"] else "temporary-baseline",
+        "priority_evidence": report["priority_evidence"],
+        "diagnostic_module": report["diagnostic_module"],
         "lanes": [
             {"kind": "focus", "module": focus, "minutes": focus_minutes},
             {"kind": "maintain", "module": maintenance, "minutes": maintenance_minutes},
@@ -890,7 +1121,7 @@ def migrate(root):
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     backup = root / "backups" / stamp
     backup.mkdir(parents=True, exist_ok=False)
-    for relative in ("profile.json", "events.jsonl", "materials/index.jsonl"):
+    for relative in ("profile.json", "events.jsonl", "materials/index.jsonl", "interview.jsonl"):
         source = root / relative
         if source.exists():
             destination = backup / relative

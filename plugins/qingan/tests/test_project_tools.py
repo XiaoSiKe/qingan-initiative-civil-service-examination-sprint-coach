@@ -1,6 +1,10 @@
 import hashlib
 import importlib.util
 import json
+import os
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -74,6 +78,36 @@ class ProjectToolTests(unittest.TestCase):
             self.assertIn(prefix + "/skills/" + prefix + "/references/rapid-calculation.md", names)
             self.assertFalse(any("/tests/" in name or "__pycache__" in name or name.endswith(".pyc") for name in names))
             self.assertFalse(any(".qingan-data" in name for name in names))
+
+    def test_standalone_skill_engine_and_plugin_entry_are_equivalent(self):
+        slug = "qingan-initiative-civil-service-examination-sprint-coach"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            skill = root / slug
+            archive = root / "练习档案"
+            shutil.copytree(PLUGIN_ROOT / "skills" / slug, skill)
+            standalone = skill / "scripts" / "qingan.py"
+            plugin = PLUGIN_ROOT / "scripts" / "qingan.py"
+
+            def run(script, *args, payload=None):
+                result = subprocess.check_output(
+                    [sys.executable, "-B", str(script), "--data-dir", str(archive), *args],
+                    input=payload,
+                    cwd=root,
+                    env={**os.environ, "PYTHONIOENCODING": "ascii"},
+                )
+                return json.loads(result)
+
+            run(standalone, "init", "--exam-type", "national", "--exam-date", "2030-11-30", "--hours-per-week", "12")
+            recorded = run(standalone, "record-session", "--json", "-", payload=json.dumps(
+                {"module": "资料分析", "attempts": 5, "correct_answers": 4, "duration_minutes": 5},
+                ensure_ascii=False,
+            ).encode("utf-8"))
+            self.assertEqual(recorded["module"], "资料分析")
+            args = ("today", "--date", "2030-09-01", "--minutes", "5")
+            expected = run(standalone, *args)
+            self.assertEqual(expected["daily_budget_minutes"], 5)
+            self.assertEqual(run(plugin, *args), expected)
 
     def test_manifest_versions_match_changelog(self):
         portable = json.loads((PLUGIN_ROOT / "plugin.json").read_text(encoding="utf-8"))
