@@ -87,6 +87,9 @@ def validate():
         text = skill_file.read_text(encoding="utf-8")
         meta = frontmatter(text)
         require(meta.get("name") == skill_name, "%s frontmatter name mismatch" % skill_name, errors)
+        for script in ("qingan.py", "qingan_core.py", "qingan_interview.py", "qingan_recovery.py"):
+            require((skill_root / "scripts" / script).is_file(), f"missing bundled engine file: {script}", errors)
+
         description = meta.get("description", "")
         require(len(description) >= 20, "%s description is too short" % skill_name, errors)
         require("[TODO:" not in text, "%s contains unfinished TODO" % skill_name, errors)

@@ -1,22 +1,23 @@
-<div align="center">
+<h1 align="center">🌊 青岸计划·考公冲刺教练</h1>
 
-# 🌊 青岸计划·考公冲刺教练
+<p align="center"><strong>一万年太久，只争朝夕！</strong></p>
 
-### 一万年太久，只争朝夕！
+<p align="center"><strong>Qing'an Initiative · Civil Service Examination Sprint Coach</strong></p>
 
-### Qing'an Initiative · Civil Service Examination Sprint Coach
+<p align="center"><strong>把有限的备考时间，变成每天都能完成、每周都能校准的上岸路径。</strong></p>
 
-**把有限的备考时间，变成每天都能完成、每周都能校准的上岸路径。**
+<p align="center">
+  <a href="https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach/actions/workflows/ci.yml"><img src="https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach/releases"><img src="https://img.shields.io/github/v/release/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach?color=2F6F5E" alt="Release"></a>
+  <a href="#-安装"><img src="https://img.shields.io/badge/Agent-Skill-6C47FF" alt="Agent Skill"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-3776AB" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-black" alt="License"></a>
+</p>
 
-[![CI](https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach?color=2F6F5E)](https://github.com/XiaoSiKe/qingan-initiative-civil-service-examination-sprint-coach/releases)
-[![Agent Skill](https://img.shields.io/badge/Agent-Skill-6C47FF)](#-安装)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-black)](LICENSE)
+<p align="center">1 个统一 Skill · 14 条内部能力路由 · 本地学习档案</p>
 
-1 个统一 Skill · 14 条内部能力路由 · 64 个行为场景 · 本地学习档案
-
-</div>
+> [!IMPORTANT]
+> 安装完整 Skill 文件夹后即可在所用 Agent 开始练习。有 Python 3.9+ 与工作区权限时可继续使用本地学习档案。
 
 ---
 
@@ -31,6 +32,16 @@
 ```text
 诊断起点 → 确定优先级 → 今日三项 → 单题训练 → 错因卡 → 间隔回测 → 周度调参
 ```
+
+## V0.7.0 周主攻与首错回测
+
+周主攻先看有足够样本的同口径错率。有两组任务时，做得较多而产生的错题总数同时保留，用于估计回测负担。短时训练会带上当前模块已记录的首错与修正动作。
+
+## V0.6.0 训练证据与报名决策
+
+同模块同口径的训练数据才能判断跨周变化。练题后记下用时、题量、正确数和口径，错题卡关联会话时，复盘同时保留真实题量和错因。当天突然加班或有课，可以按剩余分钟缩小任务，或留到次日回测。
+
+选岗先按代码对齐公告和更正职位表，逐项核对硬条件。通过项进入比较，模糊项保留核实问题与截止时间。申论批改保留材料段号和用户原句，让考生围绕一个主要断点完成二改。
 
 ## 🧭 它能帮你做什么
 
@@ -146,6 +157,8 @@ codex plugin add qingan-initiative-civil-service-examination-sprint-coach@qingan
 ```
 
 安装后新开一个会话，直接说“青岸计划，我还有 60 天省考，每周能学 20 小时”即可。更新已安装版本可运行 `npx skills update`。
+
+手动导入时复制 [完整 Skill 文件夹](plugins/qingan/skills/qingan-initiative-civil-service-examination-sprint-coach)，其中的 `scripts/qingan.py` 是通用引擎入口。支持文件与 Python 3.9+ 的宿主可直接运行它。只有对话时，可以照常讲题、批改与制定临时计划。
 
 <details>
 <summary><strong>♻️ 从旧版升级</strong></summary>
@@ -387,7 +400,7 @@ python3 plugins/qingan/scripts/check_upstreams.py --offline
 python3 plugins/qingan/scripts/build_release.py
 ```
 
-验证覆盖单 Skill 结构、14 条内部路由、64 个正例/冲突/负例场景、三层十二系统、通俗讲解与幽默边界、大学生与通用生活适配、报考面试、效率评估、情绪低谷、学习档案、日周计划、最低可行训练日、错题回测、旧数据兼容、跨平台兼容和可复现发布包。
+验证覆盖单 Skill 结构、14 条内部路由、正例、冲突与负例场景、三层十二系统、通俗讲解与幽默边界、大学生与通用生活适配、报考面试、效率评估、情绪低谷、学习档案、日周计划、最低可行训练日、错题回测、旧数据兼容、跨平台兼容和可复现发布包。
 
 方法来源、许可证和吸收边界见 [第三方声明](plugins/qingan/THIRD_PARTY_NOTICES.md)，参与维护见 [贡献指南](plugins/qingan/CONTRIBUTING.md)。
 

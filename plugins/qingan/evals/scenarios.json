@@ -3,7 +3,7 @@
   {"id":"main-02","prompt":"我大四，准备国考，帮我把行测和申论整体安排起来。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"diagnosis"},
   {"id":"main-03","prompt":"只剩三个月了，我需要一个跨模块的完整训练闭环。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"diagnosis"},
   {"id":"sprint-01","prompt":"距离省考还有45天，帮我安排今天学什么。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
-  {"id":"sprint-02","prompt":"复盘我这周的学习效率，告诉我下周只抓什么。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
+  {"id":"sprint-02","prompt":"复盘我这周的学习效率，告诉我下周只抓什么。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"evaluation"},
   {"id":"sprint-03","prompt":"我白天上课，晚上两小时，怎样排考公冲刺计划？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
   {"id":"materials-01","prompt":"把这批考公PDF讲义按模块整理成复习卡。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"materials"},
   {"id":"materials-02","prompt":"我又补了一份老师讲义，帮我判断是新增还是替换材料。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"materials"},
@@ -41,7 +41,7 @@
   {"id":"student-01","prompt":"我大三白天有专业课，晚上宿舍很吵，每周12小时怎么排省考？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
   {"id":"student-02","prompt":"我在职备考，经常临时加班，帮我设计不会越欠越多的周计划。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint"},
   {"id":"student-03","prompt":"我需要照顾家人，只能用零碎时间，第一次准备国考该怎么开始？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"diagnosis"},
-  {"id":"resilience-01","prompt":"今天模考掉了十多分，我特别难受，先别给我加任务。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
+  {"id":"resilience-01","prompt":"今天模考掉了十多分，我特别难受。先听我说两句，今天先别给我任务，也不用看我的档案。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
   {"id":"resilience-02","prompt":"课程、论文和考公堆在一起，我完全学不动了，帮我保住今天的节奏。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
   {"id":"resilience-03","prompt":"我觉得自己根本不适合考公，想放弃，能不能先陪我缓一下？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
   {"id":"resilience-04","prompt":"错题越积越多，我很焦虑，给我一个20分钟能完成的小动作。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"resilience"},
@@ -62,5 +62,14 @@
   {"id":"negative-03","prompt":"请修复这个Python脚本的日期错误。","expected_skill":null,"expected_route":null},
   {"id":"negative-04","prompt":"帮我写一份公司行政通知。","expected_skill":null,"expected_route":null},
   {"id":"negative-05","prompt":"分析一下这只股票最近的走势。","expected_skill":null,"expected_route":null},
-  {"id":"negative-06","prompt":"我最近持续焦虑失眠，请替我做医学诊断和治疗。","expected_skill":null,"expected_route":null}
+  {"id":"negative-06","prompt":"我最近持续焦虑失眠，请替我做医学诊断和治疗。","expected_skill":null,"expected_route":null},
+  {"id":"sprint-actual-minutes","prompt":"今晚临时加班，只剩 3 分钟，按现有错题安排一道能停下的任务。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"sprint","pass_condition":"按 3 分钟限制并保留未回测题"},
+  {"id":"eval-mixed-conditions","prompt":"这周几乎都做简单言语，上周做的是限时资料，正确率上涨能说明进步吗？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"evaluation","pass_condition":"汇报观察值，等待同口径组后判断变化"},
+  {"id":"application-mixed-requirements","prompt":"我有一张职位表，但专业目录里只看到近似名称，岗位备注还要求特定截止日前取得证书。帮我挑一主一备。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"application","pass_condition":"资格门槛、必要的咨询问题和截止日先于偏好排序"},
+  {"id":"shenlun-unsupported-score","prompt":"给这篇 200 字概括题打精确分。材料我只截了第一段。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"shenlun","pass_condition":"基于可见材料定位缺口，给一次二改动作"},
+  {"id":"mistake-same-day","prompt":"这道错题今天连着做对两次，记一下，以后是不是不用复习了？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"mistake","pass_condition":"同一天只构成一次成功日期，保留跨日回测"},
+  {"id":"evaluation-volume-imbalance","prompt":"这周资料分析80题对68，判断20题对11，都常规难度且闭卷限时。今晚只有6分钟，该主攻哪里？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"evaluation","pass_condition":"依据样本错率优先判断推理，只有一个时间有界动作"},
+  {"id":"application-deadline-boundary","prompt":"公告只说7月31日前取得学位，学校预计7月出证，我能说已经符合吗？","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"application","pass_condition":"保留公告原文，标出签发日与当天是否包含待确认"},
+  {"id":"application-correction-and-payment","prompt":"三岗同名。更正只有00107改硕士。西桥证书报名截止后签发、缴费前可到，请重排主备。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"application","pass_condition":"按完整岗位代码更新条件，报名和缴费各自核对"},
+  {"id":"shenlun-revision-metrics-resume","prompt":"申论初稿28字、二稿65字超限、再改45字。只保存摘句和复评记录，明天只凭记录汇报三个字数和剩余错因。","expected_skill":"qingan-initiative-civil-service-examination-sprint-coach","expected_route":"shenlun","pass_condition":"逐稿保存实计字数、材料段号和短证据，不保存答卷全文"}
 ]
